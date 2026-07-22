@@ -37,10 +37,12 @@ COPY docker/php.ini /usr/local/etc/php/conf.d/acg-faka.ini
 COPY docker/entrypoint.sh /usr/local/bin/acg-faka-entrypoint
 
 RUN mkdir -p \
+        /usr/local/share/acg-faka/default-theme \
         /var/www/html/config \
         /var/www/html/kernel/Install \
         /var/www/html/assets/cache \
         /var/www/html/runtime \
+    && cp -a /var/www/html/app/View/User/Theme/. /usr/local/share/acg-faka/default-theme/ \
     && chmod +x /usr/local/bin/acg-faka-entrypoint
 
 EXPOSE 80

@@ -15,6 +15,14 @@ if [ -d /var/www/html/runtime/view/compile ]; then
   find /var/www/html/runtime/view/compile -type f -delete
 fi
 
+# Zeabur may mount app/View/User/Theme as a persistent volume. Refresh the
+# bundled theme files from the newly built image so an older deployment cannot
+# keep serving legacy templates. Extra user-installed theme directories remain
+# untouched.
+if [ -d /usr/local/share/acg-faka/default-theme ]; then
+  cp -a /usr/local/share/acg-faka/default-theme/. /var/www/html/app/View/User/Theme/
+fi
+
 # --- default config placeholders (only if file missing) ---
 if [ ! -f /var/www/html/config/app.php ]; then
   cat > /var/www/html/config/app.php << 'APPCFG'
