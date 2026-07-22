@@ -7,6 +7,7 @@ namespace App\Controller\User;
 use App\Controller\Base\View\User;
 use App\Interceptor\UserSession;
 use App\Interceptor\Waf;
+use App\Util\Client;
 use App\Util\Date;
 use Kernel\Annotation\Interceptor;
 
@@ -25,6 +26,11 @@ class Dashboard extends User
         $uid = $user->id;
         $monthStart = date("Y-m-01 00:00:00");
         $data = [];
+
+        // Compatibility data for persisted/custom themes that still render
+        // promotion details on the dashboard instead of the promotion center.
+        $data['children'] = \App\Model\User::query()->where("pid", $uid)->count();
+        $data['share_url'] = Client::getUrl() . "?from=" . $uid;
 
         //消费(所有人):本月购物 / 累计购物 / 订单数(「最近购买」列表已改由前端表格复用 /user/api/purchaseRecord/data)
         $buyModel = \App\Model\Order::query()->where("owner", $uid)->where("status", 1);
