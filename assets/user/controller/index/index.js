@@ -13,6 +13,7 @@
 
         data.forEach(item => {
             const isSoldOut = item.stock == 0;
+            const showStock = item.inventory_hidden != 1;
             $ItemList.append(`<a href="${!isSoldOut ? `/item/${item.id}` : `javascript:void(0);`}" class="col-12 col-md-6 col-lg-3 mb-3" data-id="${item.id}">
           <div class="acg-card ${isSoldOut ? `soldout` : ``} h-100">
             <div class="acg-thumb" style="background: url('${item.cover}') center/cover no-repeat;"></div>
@@ -25,7 +26,7 @@
               <div class="stat-row mb-1">
                 <div class="price"><span class="unit">¥</span>${item.price}</div>
               </div>
-              <div class="stat-bottom"><span>库存：${item.stock}</span><span>已售：${item.order_sold}</span></div>
+              <div class="stat-bottom">${showStock ? `<span>库存：${item.stock}</span>` : ``}<span>已售：${item.order_sold}</span></div>
             </div>
             ${isSoldOut ? `<div class="soldout-ribbon">售罄</div>` : ``}
           </div>
