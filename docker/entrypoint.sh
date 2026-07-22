@@ -21,6 +21,20 @@ mkdir -p \
     runtime/view \
     runtime/waf
 
+# Zeabur 等平台的持久化卷初次挂载时可能是空目录，会把镜像内的默认配置、
+# 默认主题和安装资源“盖掉”。关键文件缺失时，从镜像快照中自动补回。
+if [ ! -f config/app.php ] || [ ! -f config/dependencies.php ]; then
+    cp -a /usr/local/share/acg-faka/default-config/. config/
+fi
+
+if [ ! -f app/View/User/Theme/Cartoon/Config.php ]; then
+    cp -a /usr/local/share/acg-faka/default-theme/. app/View/User/Theme/
+fi
+
+if [ ! -f kernel/Install/Install.sql ]; then
+    cp -a /usr/local/share/acg-faka/default-install/. kernel/Install/
+fi
+
 # 后台“基础设置”会把上传的 Logo 写到 /favicon.ico。
 # 将它落到 assets/cache 这个持久化卷中，避免容器重建后丢失。
 if [ ! -f assets/cache/favicon.ico ]; then
