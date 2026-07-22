@@ -22,9 +22,19 @@ mkdir -p \
     runtime/waf
 
 # Zeabur 等平台的持久化卷初次挂载时可能是空目录，会把镜像内的默认配置、
-# 默认主题和安装资源“盖掉”。关键文件缺失时，从镜像快照中自动补回。
-if [ ! -f config/app.php ] || [ ! -f config/dependencies.php ]; then
-    cp -a /usr/local/share/acg-faka/default-config/. config/
+# 默认主题和安装资源“盖掉”。这里只恢复基础配置，绝不覆盖安装后写入的
+# config/database.php，避免把真实数据库连接顶回示例值。
+if [ ! -f config/app.php ]; then
+    cp -a /usr/local/share/acg-faka/default-config/app.php config/app.php
+fi
+
+if [ ! -f config/dependencies.php ]; then
+    cp -a /usr/local/share/acg-faka/default-config/dependencies.php config/dependencies.php
+fi
+
+if [ ! -d config/waf ] || [ -z "$(ls -A config/waf 2>/dev/null)" ]; then
+    mkdir -p config/waf
+    cp -a /usr/local/share/acg-faka/default-waf/. config/waf/
 fi
 
 if [ ! -f app/View/User/Theme/Cartoon/Config.php ]; then

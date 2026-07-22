@@ -41,6 +41,7 @@ RUN mkdir -p \
         /usr/local/share/acg-faka/default-config \
         /usr/local/share/acg-faka/default-theme \
         /usr/local/share/acg-faka/default-install \
+        /usr/local/share/acg-faka/default-waf \
         /var/www/html/assets/cache \
         /var/www/html/app/Pay \
         /var/www/html/app/Plugin \
@@ -53,7 +54,9 @@ RUN mkdir -p \
         /var/www/html/runtime/tmp \
         /var/www/html/runtime/view \
         /var/www/html/runtime/waf \
-    && cp -a /var/www/html/config/. /usr/local/share/acg-faka/default-config/ \
+    && cp -a /var/www/html/config/app.php /usr/local/share/acg-faka/default-config/app.php \
+    && cp -a /var/www/html/config/dependencies.php /usr/local/share/acg-faka/default-config/dependencies.php \
+    && cp -a /var/www/html/config/waf/. /usr/local/share/acg-faka/default-waf/ \
     && cp -a /var/www/html/app/View/User/Theme/. /usr/local/share/acg-faka/default-theme/ \
     && cp -a /var/www/html/kernel/Install/. /usr/local/share/acg-faka/default-install/ \
     && if [ -f /var/www/html/favicon.ico ]; then \
