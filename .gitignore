@@ -1,0 +1,9 @@
+/config/database.php
+/config/store.php
+/runtime/*
+!/runtime/.gitkeep
+/kernel/Install/Lock
+/assets/cache/*
+/.env
+*.log
+*.tmp
