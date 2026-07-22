@@ -12,8 +12,7 @@ use Kernel\Util\Context;
 use Kernel\Util\Plugin;
 use Kernel\Waf\Firewall;
 
-ini_set('display_errors', '1');
-error_reporting(E_ALL);
+error_reporting(0);
 const BASE_PATH = __DIR__ . "/../";
 define('DEBUG', false);
 require(BASE_PATH . '/vendor/autoload.php');
