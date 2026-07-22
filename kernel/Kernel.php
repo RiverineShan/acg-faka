@@ -15,6 +15,7 @@ use Kernel\Waf\Firewall;
 ini_set('display_errors', '1');
 error_reporting(E_ALL);
 const BASE_PATH = __DIR__ . "/../";
+define('DEBUG', false);
 require(BASE_PATH . '/vendor/autoload.php');
 require("Helper.php");
 //define
