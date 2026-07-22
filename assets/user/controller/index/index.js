@@ -13,7 +13,12 @@
 
         data.forEach(item => {
             const isSoldOut = item.stock == 0;
-            const showStock = item.inventory_hidden != 1;
+            const isNumericStock = (val) => {
+                if (val === null || val === undefined) return false;
+                if (typeof val === 'number') return true;
+                return typeof val === 'string' && /^\d+(\.\d+)?$/.test(val);
+            };
+            const showStock = item.inventory_hidden != 1 && isNumericStock(item.stock);
             $ItemList.append(`<a href="${!isSoldOut ? `/item/${item.id}` : `javascript:void(0);`}" class="col-12 col-md-6 col-lg-3 mb-3" data-id="${item.id}">
           <div class="acg-card ${isSoldOut ? `soldout` : ``} h-100">
             <div class="acg-thumb" style="background: url('${item.cover}') center/cover no-repeat;"></div>
