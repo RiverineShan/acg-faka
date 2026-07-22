@@ -300,6 +300,13 @@ if (!function_exists("_asset_mtime")) {
     }
 }
 
+if (!function_exists("_asset_version")) {
+    function _asset_version(): string
+    {
+        return defined("APP_VERSION") ? (string)constant("APP_VERSION") : "3.5.4";
+    }
+}
+
 if (!function_exists("css")) {
     function css(array|string $resource, array|string|null $backup = null, bool $cdn = true): string
     {
@@ -313,13 +320,13 @@ if (!function_exists("css")) {
             foreach ($resource as $item) {
                 $res .= sprintf(
                     '<link rel="stylesheet" href="%s" ' . $cdnSupport . '>',
-                    $item . (str_contains($item, "?") ? "&" : "?") . 'v=' . APP_VERSION . '&m=' . _asset_mtime($item) . $debugRandom
+                    $item . (str_contains($item, "?") ? "&" : "?") . 'v=' . _asset_version() . '&m=' . _asset_mtime($item) . $debugRandom
                 );
             }
         } else {
             $res = sprintf(
                 '<link rel="stylesheet" href="%s" ' . $cdnSupport . '>',
-                $resource . (str_contains($resource, "?") ? "&" : "?") . 'v=' . APP_VERSION . '&m=' . _asset_mtime($resource) . $debugRandom
+                $resource . (str_contains($resource, "?") ? "&" : "?") . 'v=' . _asset_version() . '&m=' . _asset_mtime($resource) . $debugRandom
             );
         }
         return $res;
@@ -339,13 +346,13 @@ if (!function_exists("js")) {
             foreach ($resource as $item) {
                 $res .= sprintf(
                     '<script src="%s" ' . $cdnSupport . '></script>',
-                    $item . (str_contains($item, "?") ? "&" : "?") . 'v=' . APP_VERSION . '&m=' . _asset_mtime($item) . $debugRandom
+                    $item . (str_contains($item, "?") ? "&" : "?") . 'v=' . _asset_version() . '&m=' . _asset_mtime($item) . $debugRandom
                 );
             }
         } else {
             $res = sprintf(
                 '<script src="%s" ' . $cdnSupport . '></script>',
-                $resource . (str_contains($resource, "?") ? "&" : "?") . 'v=' . APP_VERSION . '&m=' . _asset_mtime($resource) . $debugRandom
+                $resource . (str_contains($resource, "?") ? "&" : "?") . 'v=' . _asset_version() . '&m=' . _asset_mtime($resource) . $debugRandom
             );
         }
         return $res;
@@ -353,7 +360,7 @@ if (!function_exists("js")) {
 }
 
 
-if (!function_exists('ready_get_value')) {
+if (!function_exists('_ready_get_value')) {
     function _ready_get_value(mixed $value): string|bool|null
     {
         if (is_numeric($value) || is_bool($value)) {
@@ -376,7 +383,7 @@ if (!function_exists("ready")) {
         foreach ($variable as $key => $value) {
             $var .= "setVar('{$key}' , " . _ready_get_value($value) . ");";
         }
-        return '<script>' . $var . 'ready("' . $resource . (str_contains($resource, "?") ? "&" : "?") . 'v=' . APP_VERSION . '&m=' . _asset_mtime($resource) . (DEBUG ? "&debug=" . Str::generateRandStr(8) : '') . '");</script>';
+        return '<script>' . $var . 'ready("' . $resource . (str_contains($resource, "?") ? "&" : "?") . 'v=' . _asset_version() . '&m=' . _asset_mtime($resource) . (DEBUG ? "&debug=" . Str::generateRandStr(8) : '') . '");</script>';
     }
 }
 
