@@ -7,6 +7,14 @@ mkdir -p /var/www/html/kernel/Install
 mkdir -p /var/www/html/assets/cache
 mkdir -p /var/www/html/runtime
 
+# Compiled views contain generated PHP from the application version that
+# created them. The runtime directory may be backed by a persistent volume on
+# Zeabur, so discard only these rebuildable files on every deployment to avoid
+# mixing old templates with the newly deployed controllers.
+if [ -d /var/www/html/runtime/view/compile ]; then
+  find /var/www/html/runtime/view/compile -type f -delete
+fi
+
 # --- default config placeholders (only if file missing) ---
 if [ ! -f /var/www/html/config/app.php ]; then
   cat > /var/www/html/config/app.php << 'APPCFG'
