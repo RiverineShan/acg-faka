@@ -147,11 +147,11 @@ try {
         exit(json_encode(["code" => $e->getCode(), "msg" => $e->getMessage()], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
     } elseif ($e instanceof \Kernel\Exception\ViewException) {
         header("Content-type: text/html; charset=utf-8");
-        error_log('[ACG-FATAL] ' . $e->getFile() . ':' . $e->getLine() . ' ' . $e->getMessage());
+        file_put_contents('php://stderr', '[ACG-FATAL] ' . $e->getFile() . ':' . $e->getLine() . ' ' . $e->getMessage() . PHP_EOL);
         http_response_code(500);
         exit('<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>服务异常</title><body><p style="font:18px sans-serif;text-align:center;margin-top:20vh">服务暂时异常（ACG-500），请稍后重试。</p></body></html>');
     } else {
-        error_log('[ACG-FATAL] ' . $e->getFile() . ':' . $e->getLine() . ' ' . $e->getMessage());
+        file_put_contents('php://stderr', '[ACG-FATAL] ' . $e->getFile() . ':' . $e->getLine() . ' ' . $e->getMessage() . PHP_EOL);
         http_response_code(500);
         exit('<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>服务异常</title><body><p style="font:18px sans-serif;text-align:center;margin-top:20vh">服务暂时异常（ACG-500），请稍后重试。</p></body></html>');
     }
