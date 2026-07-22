@@ -225,15 +225,7 @@ if (!function_exists("getLocalRouter")) {
 if (!function_exists("feedback")) {
     function feedback(string $value)
     {
-        if ($value != "404 Not Found") {
-            debug($value);
-        }
-
-        if (!DEBUG) {
-            return View::render("404.html", ["msg" => "404 Not Found"]);
-        }
-
-        return "<!DOCTYPEhtml><htmllang='zh-CN'><head><meta name='viewport' content='width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no'><metacharset='utf-8'><title>{$value}</title></head><body style='margin: 0px;'><center style='color: #ffffff;background-color: #ff6f6f;padding-top: 18px;padding-bottom: 18px;font-size: 18px;'>{$value}</center></body></html>";
+        return "<!DOCTYPE html><html lang='zh-CN'><head><meta charset='utf-8'><title>{$value}</title></head><body style='margin:0;background:#ff6f6f;color:#fff;text-align:center;padding:18px;font-size:18px;font-family:sans-serif;'>{$value}</body></html>";
     }
 }
 
