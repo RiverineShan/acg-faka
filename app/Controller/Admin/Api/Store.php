@@ -166,13 +166,15 @@ class Store extends Manage
         $count = count($items);
         $success = 0;
         $error = 0;
+        $errors = [];
 
         foreach ($items as $item) {
+            $itemName = strip_tags((string)($item['name'] ?? '未命名商品'));
             try {
                 $commodity = new \App\Model\Commodity();
                 $commodity->category_id = $categoryId;
-                $commodity->name = $item['name'];
-                $commodity->description = $item['description'];
+                $commodity->name = $itemName;
+                $commodity->description = (string)($item['description'] ?? '');
 
                 //正则处理
                 preg_match_all('#<img.*?src="(/.*?)"#', $commodity->description, $matchs);
@@ -191,11 +193,16 @@ class Store extends Manage
                 }
 
                 //远端cover下载
+                $cover = (string)($item['cover'] ?? '');
                 if ($imageDownload) {
-                    $download = $this->image->downloadRemoteImage($shared->domain . $item['cover']);
-                    $commodity->cover = $download[0];
+                    if ($cover !== '') {
+                        $download = $this->image->downloadRemoteImage($shared->domain . $cover);
+                        $commodity->cover = $download[0];
+                    } else {
+                        $commodity->cover = '/favicon.ico';
+                    }
                 } else {
-                    $commodity->cover = $shared->domain . $item['cover'];
+                    $commodity->cover = $cover ? $shared->domain . $cover : '/favicon.ico';
                 }
 
                 $commodity->status = $shelves;
@@ -204,40 +211,49 @@ class Store extends Manage
                 $commodity->api_status = 0;
                 $commodity->code = strtoupper(Str::generateRandStr(16));
                 $commodity->delivery_way = 1;
-                $commodity->contact_type = $item['contact_type'];
-                $commodity->password_status = $item['password_status'];
+                $commodity->contact_type = (int)($item['contact_type'] ?? 0);
+                $commodity->password_status = (int)($item['password_status'] ?? 0);
                 $commodity->sort = 0;
                 $commodity->coupon = 0;
                 $commodity->shared_id = $storeId;
-                $commodity->shared_code = $item['code'];
+                $commodity->shared_code = (string)($item['code'] ?? '');
                 $commodity->shared_premium = $premium;
                 $commodity->shared_premium_type = $premiumType;
-                $commodity->seckill_status = $item['seckill_status'];
+                $commodity->seckill_status = (int)($item['seckill_status'] ?? 0);
                 $commodity->shared_sync = $sharedSync;
                 $commodity->shared_amount_sync = $sharedAmountSync;
                 $commodity->shared_config_sync = $sharedConfigSync;
+                $commodity->widget = is_array($item['widget'] ?? null)
+                    ? json_encode($item['widget'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+                    : (string)($item['widget'] ?? '');
 
                 if ($commodity->seckill_status == 1) {
-                    $commodity->seckill_start_time = $item['seckill_start_time'];
-                    $commodity->seckill_end_time = $item['seckill_end_time'];
+                    $commodity->seckill_start_time = (string)($item['seckill_start_time'] ?? '');
+                    $commodity->seckill_end_time = (string)($item['seckill_end_time'] ?? '');
                 }
 
-                $commodity->draft_status = $item['draft_status'];
+                $commodity->draft_status = (int)($item['draft_status'] ?? 0);
 
                 if ($commodity->draft_status) {
-                    $commodity->draft_premium = $this->shared->AdjustmentAmount($premiumType, $premium, $item['draft_premium']);
+                    $commodity->draft_premium = $this->shared->AdjustmentAmount($premiumType, $premium, $item['draft_premium'] ?? 0);
                 }
 
                 //2022/01/05新增
-                $commodity->inventory_hidden = $item['inventory_hidden'];
-                $commodity->only_user = $item['only_user'];
-                $commodity->purchase_count = $item['purchase_count'];
-                $commodity->widget = $item['widget'];
-                $commodity->minimum = $item['minimum'];
-                !empty($item['stock']) && $commodity->stock = $item['stock'];
+                $commodity->inventory_hidden = (int)($item['inventory_hidden'] ?? 0);
+                $commodity->only_user = (int)($item['only_user'] ?? 0);
+                $commodity->purchase_count = (int)($item['purchase_count'] ?? 0);
+                $commodity->minimum = (int)($item['minimum'] ?? 0);
+                $commodity->maximum = (int)($item['maximum'] ?? 0);
+                !empty($item['stock']) && $commodity->stock = (int)$item['stock'];
 
                 //自动加价
-                $config = $this->shared->AdjustmentPrice((string)$item['config'], $item['price'], $item['user_price'], $premiumType, $premium);
+                $config = $this->shared->AdjustmentPrice(
+                    (string)($item['config'] ?? ''),
+                    (string)($item['price'] ?? '0'),
+                    (string)($item['user_price'] ?? '0'),
+                    $premiumType,
+                    $premium
+                );
 
                 $_config = Ini::toArray((string)$item['config']);
 
@@ -256,13 +272,22 @@ class Store extends Manage
 
                 $commodity->save();
                 $success++;
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 $error++;
+                $errors[] = "{$itemName}：{$e->getMessage()}";
             }
         }
 
         ManageLog::log($this->getManage(), "[店铺共享]进行了克隆商品({$shared->name})，总数量：{$count}，成功：{$success}，失败：{$error}");
-        return $this->json(200, "拉取结束，总数量：{$count}，成功：{$success}，失败：{$error}");
+        if ($success === 0 && $error > 0) {
+            throw new JSONException("导入失败。 " . implode("；", array_slice($errors, 0, 3)));
+        }
+
+        $message = "拉取结束，总数量：{$count}，成功：{$success}，失败：{$error}";
+        if (!empty($errors)) {
+            $message .= "。失败示例：" . implode("；", array_slice($errors, 0, 2));
+        }
+        return $this->json(200, $message);
     }
 
 

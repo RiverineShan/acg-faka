@@ -221,7 +221,7 @@
                                                 title: "加价数额",
                                                 name: "premium",
                                                 type: "input",
-                                                placeholder: "加价金额/百分比(小数代替)",
+                                                placeholder: "加价金额/百分比(如 20% 请填 0.2)",
                                                 required: true
                                             },
                                             {title: "远程商品", name: "auth", type: "treeCheckbox", dict: res.data}
