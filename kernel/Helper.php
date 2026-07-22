@@ -283,3 +283,111 @@ if (!function_exists("Plugin")) {
         return "/app/Plugin/{$pluginName}/{$src}?v=" . Plugin::getPlugin($pluginName)[\App\Consts\Plugin::VERSION] . (!$debug ?: "&debug=" . Str::generateRandStr(16));
     }
 }
+
+
+if (!function_exists("_asset_mtime")) {
+    function _asset_mtime(string $resource): int
+    {
+        $plain = explode('?', $resource, 2)[0];
+        if (!str_starts_with($plain, "/")) {
+            return 0;
+        }
+        $path = BASE_PATH . ltrim($plain, "/");
+        if (!file_exists($path)) {
+            return 0;
+        }
+        return (int)filemtime($path);
+    }
+}
+
+if (!function_exists("css")) {
+    function css(array|string $resource, array|string|null $backup = null, bool $cdn = true): string
+    {
+        if (DEBUG && $backup !== null) {
+            $resource = $backup;
+        }
+        $res = '';
+        $debugRandom = DEBUG ? "&debug=" . Str::generateRandStr(8) : "";
+        $cdnSupport = $cdn ? 'class="cdn-support"' : '';
+        if (is_array($resource)) {
+            foreach ($resource as $item) {
+                $res .= sprintf(
+                    '<link rel="stylesheet" href="%s" ' . $cdnSupport . '>',
+                    $item . (str_contains($item, "?") ? "&" : "?") . 'v=' . APP_VERSION . '&m=' . _asset_mtime($item) . $debugRandom
+                );
+            }
+        } else {
+            $res = sprintf(
+                '<link rel="stylesheet" href="%s" ' . $cdnSupport . '>',
+                $resource . (str_contains($resource, "?") ? "&" : "?") . 'v=' . APP_VERSION . '&m=' . _asset_mtime($resource) . $debugRandom
+            );
+        }
+        return $res;
+    }
+}
+
+if (!function_exists("js")) {
+    function js(array|string $resource, array|string|null $backup = null, bool $cdn = true): string
+    {
+        if (DEBUG && $backup !== null) {
+            $resource = $backup;
+        }
+        $res = '';
+        $debugRandom = DEBUG ? "&debug=" . Str::generateRandStr(8) : "";
+        $cdnSupport = $cdn ? ' class="cdn-support"' : '';
+        if (is_array($resource)) {
+            foreach ($resource as $item) {
+                $res .= sprintf(
+                    '<script src="%s" ' . $cdnSupport . '></script>',
+                    $item . (str_contains($item, "?") ? "&" : "?") . 'v=' . APP_VERSION . '&m=' . _asset_mtime($item) . $debugRandom
+                );
+            }
+        } else {
+            $res = sprintf(
+                '<script src="%s" ' . $cdnSupport . '></script>',
+                $resource . (str_contains($resource, "?") ? "&" : "?") . 'v=' . APP_VERSION . '&m=' . _asset_mtime($resource) . $debugRandom
+            );
+        }
+        return $res;
+    }
+}
+
+
+if (!function_exists('ready_get_value')) {
+    function _ready_get_value(mixed $value): string|bool|null
+    {
+        if (is_numeric($value) || is_bool($value)) {
+            $value = var_export($value, true);
+        } elseif (is_array($value)) {
+            $value = json_encode($value);
+        } else {
+            $value = addslashes((string)$value);
+            $value = "\"$value\"";
+        }
+        return $value;
+    }
+}
+
+
+if (!function_exists("ready")) {
+    function ready(string $resource, array $variable = []): string
+    {
+        $var = '';
+        foreach ($variable as $key => $value) {
+            $var .= "setVar('{$key}' , " . _ready_get_value($value) . ");";
+        }
+        return '<script>' . $var . 'ready("' . $resource . (str_contains($resource, "?") ? "&" : "?") . 'v=' . APP_VERSION . '&m=' . _asset_mtime($resource) . (DEBUG ? "&debug=" . Str::generateRandStr(8) : '') . '");</script>';
+    }
+}
+
+
+if (!function_exists("set_script_var")) {
+    function set_script_var(array $vars): string
+    {
+        $str = "<script>";
+        foreach ($vars as $name => $var) {
+            $str .= "setVar(\"{$name}\"," . _ready_get_value($var) . ");";
+        }
+        return $str . "</script>";
+    }
+}
