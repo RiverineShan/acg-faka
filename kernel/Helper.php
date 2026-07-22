@@ -315,6 +315,21 @@ if (!function_exists("Plugin")) {
 }
 
 
+if (!function_exists("_asset_mtime")) {
+    function _asset_mtime(string $resource): int
+    {
+        $plain = explode('?', $resource, 2)[0];
+        if (!str_starts_with($plain, "/")) {
+            return 0;
+        }
+        $path = BASE_PATH . ltrim($plain, "/");
+        if (!file_exists($path)) {
+            return 0;
+        }
+        return (int)filemtime($path);
+    }
+}
+
 if (!function_exists("css")) {
     function css(array|string $resource, array|string|null $backup = null, bool $cdn = true): string
     {
@@ -326,10 +341,16 @@ if (!function_exists("css")) {
         $cdnSupport = $cdn ? 'class="cdn-support"' : '';
         if (is_array($resource)) {
             foreach ($resource as $item) {
-                $res .= sprintf('<link rel="stylesheet" href="%s" ' . $cdnSupport . '>', $item . '?v=' . APP_VERSION . $debugRandom);
+                $res .= sprintf(
+                    '<link rel="stylesheet" href="%s" ' . $cdnSupport . '>',
+                    $item . (str_contains($item, "?") ? "&" : "?") . 'v=' . APP_VERSION . '&m=' . _asset_mtime($item) . $debugRandom
+                );
             }
         } else {
-            $res = sprintf('<link rel="stylesheet" href="%s" ' . $cdnSupport . '>', $resource . '?v=' . APP_VERSION . $debugRandom);
+            $res = sprintf(
+                '<link rel="stylesheet" href="%s" ' . $cdnSupport . '>',
+                $resource . (str_contains($resource, "?") ? "&" : "?") . 'v=' . APP_VERSION . '&m=' . _asset_mtime($resource) . $debugRandom
+            );
         }
         return $res;
     }
@@ -346,10 +367,16 @@ if (!function_exists("js")) {
         $cdnSupport = $cdn ? ' class="cdn-support"' : '';
         if (is_array($resource)) {
             foreach ($resource as $item) {
-                $res .= sprintf('<script src="%s" ' . $cdnSupport . '></script>', $item . (str_contains($item, "?") ? "&" : "?") . 'v=' . APP_VERSION . $debugRandom);
+                $res .= sprintf(
+                    '<script src="%s" ' . $cdnSupport . '></script>',
+                    $item . (str_contains($item, "?") ? "&" : "?") . 'v=' . APP_VERSION . '&m=' . _asset_mtime($item) . $debugRandom
+                );
             }
         } else {
-            $res = sprintf('<script src="%s" ' . $cdnSupport . '></script>', $resource . (str_contains($resource, "?") ? "&" : "?") . 'v=' . APP_VERSION . $debugRandom);
+            $res = sprintf(
+                '<script src="%s" ' . $cdnSupport . '></script>',
+                $resource . (str_contains($resource, "?") ? "&" : "?") . 'v=' . APP_VERSION . '&m=' . _asset_mtime($resource) . $debugRandom
+            );
         }
         return $res;
     }
@@ -387,7 +414,7 @@ if (!function_exists("ready")) {
         foreach ($variable as $key => $value) {
             $var .= "setVar('{$key}' , " . _ready_get_value($value) . ");";
         }
-        return '<script>' . $var . 'ready("' . $resource . (str_contains($resource, "?") ? "&" : "?") . 'v=' . APP_VERSION . (DEBUG ? "&debug=" . Str::generateRandStr(8) : '') . '");</script>';
+        return '<script>' . $var . 'ready("' . $resource . (str_contains($resource, "?") ? "&" : "?") . 'v=' . APP_VERSION . '&m=' . _asset_mtime($resource) . (DEBUG ? "&debug=" . Str::generateRandStr(8) : '') . '");</script>';
     }
 }
 
