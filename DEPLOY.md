@@ -34,7 +34,7 @@ DB_PREFIX=acg_
 /var/www/html/app/View/User/Theme
 ```
 
-入口脚本只补齐卷中缺失的默认文件，不会覆盖已有数据库配置、插件、支付模块或主题。
+入口脚本只补齐卷中缺失的默认文件，并刷新系统自带的版本配置、WAF 配置与 Cartoon 核心主题。不会覆盖已有数据库配置、插件、支付模块或其他自定义主题。
 
 `docker-compose.yml` 仅用于本地 Docker；Zeabur 当前不会直接使用 Compose 文件。
 

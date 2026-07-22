@@ -19,6 +19,22 @@ cp -a -n /opt/acg-defaults/plugins/. /var/www/html/app/Plugin/
 cp -a -n /opt/acg-defaults/pay/. /var/www/html/app/Pay/
 cp -a -n /opt/acg-defaults/themes/. /var/www/html/app/View/User/Theme/
 
+# Core files must match the deployed application version. Persistent volumes may
+# still contain files from a newer release, so refresh only framework-owned
+# defaults while preserving database.php, plugins, payments and custom themes.
+cp -a /opt/acg-defaults/config/app.php /var/www/html/config/app.php
+if [ -d /opt/acg-defaults/config/waf ]; then
+  mkdir -p /var/www/html/config/waf
+  cp -a /opt/acg-defaults/config/waf/. /var/www/html/config/waf/
+fi
+if [ -d /opt/acg-defaults/themes/Cartoon ]; then
+  mkdir -p /var/www/html/app/View/User/Theme/Cartoon
+  cp -a /opt/acg-defaults/themes/Cartoon/. /var/www/html/app/View/User/Theme/Cartoon/
+fi
+
+# Compiled templates from another version are not reusable.
+rm -rf /var/www/html/runtime/view/compile/* /var/www/html/runtime/view/cache/*
+
 if [ ! -f /var/www/html/config/store.php ]; then
   cat > /var/www/html/config/store.php << 'STORECFG'
 <?php
