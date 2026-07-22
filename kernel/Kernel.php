@@ -10,11 +10,8 @@ use Kernel\Exception\NotFoundException;
 use Kernel\Plugin\Hook;
 use Kernel\Util\Context;
 use Kernel\Util\Plugin;
-use Kernel\Util\RequestLogger;
 use Kernel\Waf\Firewall;
 
-
-date_default_timezone_set("Asia/Shanghai");
 error_reporting(0);
 const BASE_PATH = __DIR__ . "/../";
 require(BASE_PATH . '/vendor/autoload.php');
@@ -26,34 +23,20 @@ define("BASE_APP_SERVER", match ((int)config("store")['server']) {
     2 => App\Service\App::STANDBY_SERVER2,
     3 => App\Service\App::GENERAL_SERVER
 });
-define("APP_VERSION", config('app')['version']);
-
 //session
 session_name("ACG-SHOP");
 //session_start();
 //session_write_close();
 try {
-    preg_match('/\/item\/(\d+)/', $_GET['s'] ?? "/", $_item);
-    preg_match('/\/cat\/(\d+|recommend)/', $_GET['s'] ?? "/", $_cat);
-
-    if (isset($_item[1]) && is_numeric($_item[1])) {
-        $_GET['s'] = "/user/index/item";
-        $_GET['mid'] = $_item[1];
-    }
-
-    if (isset($_cat[1]) && (is_numeric($_cat[1]) || $_cat[1] == "recommend")) {
-        $_GET['s'] = "/user/index/index";
-        $_GET['cid'] = $_cat[1];
-    }
-
     //waf install -> 2025-07-26
-    $routePath = $_GET['s'] = $_GET['s'] ?? "/user/index/index";
     Context::set(\Kernel\Context\Interface\Request::class, new Request());
-    if (trim($routePath, "/") == 'admin') {
+    if (!isset($_GET['s'])) {
+        $_GET['s'] = "/user/index/index";
+    } elseif (trim($_GET['s'], "/") == 'admin') {
         header('location:' . "/admin/authentication/login");
     }
 
-    $s = explode("/", trim((string)$routePath, '/'));
+    $s = explode("/", trim((string)$_GET['s'], '/'));
     Context::set(Base::ROUTE, "/" . implode("/", $s));
     Context::set(Base::LOCK, (string)file_get_contents(BASE_PATH . "/kernel/Install/Lock"));
     Context::set(Base::IS_INSTALL, file_exists(BASE_PATH . '/kernel/Install/Lock'));
@@ -104,22 +87,8 @@ try {
         Hook::inst()->load();
         //插件初始化
         hook(\App\Consts\Hook::KERNEL_INIT);
-
-        //后台安全入口（由 Entrance 插件下沉到核心，配置见 网站设置-基本设置；未配置则不启用）
-        \App\Util\AdminEntrance::guard();
     }
 
-
-    //安全响应头
-    if (!headers_sent()) {
-        header("X-Content-Type-Options: nosniff");
-        header("X-Frame-Options: SAMEORIGIN");
-        header("Referrer-Policy: strict-origin-when-cross-origin");
-        header("Content-Security-Policy: frame-ancestors 'self'; object-src 'none'; base-uri 'self'");
-    }
-
-    //记录日志
-    RequestLogger::logCurrentRequest(Context::get(\Kernel\Context\Interface\Request::class));
 
     //检测类是否存在
     if (!class_exists($controller)) {
@@ -150,8 +119,10 @@ try {
     $parameters = Collector::instance()->getMethodParameters($controllerInstance, $action, $_REQUEST);
     hook(\App\Consts\Hook::CONTROLLER_CALL_BEFORE, $controllerInstance, $action);
     $result = call_user_func_array([$controllerInstance, $action], $parameters);
+    $routePath = $_GET['s'];
     hook(\App\Consts\Hook::CONTROLLER_CALL_AFTER, $controllerInstance, $action, $result);
     hook(\App\Consts\Hook::HTTP_ROUTE_RESPONSE, $routePath, $result);
+
 
 
     if ($result === null) {

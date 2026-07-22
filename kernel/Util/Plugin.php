@@ -7,7 +7,6 @@ namespace Kernel\Util;
 use App\Util\Opcache;
 use Kernel\Consts\Base;
 use Kernel\Container\Di;
-use Kernel\Plugin\Entity\Stock;
 
 class Plugin
 {
@@ -37,9 +36,8 @@ class Plugin
 
         $infoPath = $path . '/Config/Info.php';
         $submitPath = $path . '/Config/Submit.php';
-        $submitJsPath = $path . '/Config/Submit.js';
         $configPath = $path . '/Config/Config.php';
-        if (!file_exists($infoPath)) {
+        if (!file_exists($infoPath) || !file_exists($submitPath) || !file_exists($configPath)) {
             return null;
         }
 
@@ -48,12 +46,8 @@ class Plugin
         }
 
         $info = (array)require($infoPath);
-        $submit = file_exists($submitPath) ? require($submitPath) : [];
-        $config = file_exists($configPath) ? require($configPath) : [];
-
-        if (file_exists($submitJsPath)) {
-            $submit = file_get_contents($submitJsPath);
-        }
+        $submit = (array)require($submitPath);
+        $config = (array)require($configPath);
 
         //submit
         if (is_array($submit)) {
@@ -112,9 +106,7 @@ class Plugin
                         $arguments = $attribute->getArguments();
                         if ($attribute->newInstance() instanceof \Kernel\Annotation\Plugin) {
                             if ($arguments['state'] == $state) {
-                                $obj = new $namespace();
-                                Di::inst()->inject($obj);
-                                call_user_func_array([$obj, $method->getName()], $args);
+                                call_user_func_array([new $namespace, $method->getName()], $args);
                             }
                         }
                     }
@@ -126,35 +118,22 @@ class Plugin
     /**
      * @param int $point
      * @param mixed ...$args
-     * @return array|Stock|string|void
+     * @return void|mixed
      * @throws \ReflectionException
      */
     public static function hook(int $point, mixed &...$args)
     {
         if (Context::get(Base::STORE_STATUS) && Context::get(Base::IS_INSTALL)) {
             $list = (Plugin::$container['hook'] ?? [])[$point] ?? [];
-            $results = "";
-
             foreach ($list as $item) {
-                if (!is_dir(BASE_PATH . "/app/Plugin/{$item['pluginName']}")) continue;
-                if (!class_exists($item['namespace'])) continue;
                 Plugin::$currentPluginName = $item['pluginName'];
                 $instance = new $item['namespace'];
                 Di::inst()->inject($instance);
                 $result = call_user_func_array([$instance, $item['method']], $args);
-                if (is_string($result)) {
-                    $results .= $result;
-                } elseif (is_array($result)) {
-                    if ($results === "") {
-                        $results = [];
-                    }
-                    $results[] = $result;
-                } elseif ($result instanceof Stock) {
+                if ($result) {
                     return $result;
                 }
             }
-
-            return $results;
         }
     }
 
@@ -164,6 +143,6 @@ class Plugin
      */
     public static function getHookNum(int $point): int
     {
-        return (int)count((array)self::$container['hook'][$point]);
+        return (int)count((array)self::$container[$point]);
     }
 }

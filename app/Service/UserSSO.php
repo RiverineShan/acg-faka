@@ -5,14 +5,14 @@ namespace App\Service;
 
 
 use App\Model\User;
+use App\Service\Impl\UserSSOService;
 use Kernel\Annotation\Bind;
 
-#[Bind(class: \App\Service\Bind\UserSSO::class)]
+#[Bind(class: UserSSOService::class)]
 interface UserSSO
 {
     /**
      * @param User $user
-     * @param bool $remember
      */
-    public function loginSuccess(User $user, bool $remember = false): void;
+    public function loginSuccess(User $user): void;
 }

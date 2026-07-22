@@ -3,43 +3,37 @@ declare(strict_types=1);
 
 namespace App\Service;
 
-use App\Entity\Query\Delete;
-use App\Entity\Query\Get;
-use App\Entity\Query\Save;
+
+use App\Entity\CreateObjectEntity;
+use App\Entity\DeleteBatchEntity;
+use App\Entity\QueryTemplateEntity;
+use App\Service\Impl\QueryService;
 use Kernel\Annotation\Bind;
 
-#[Bind(class: \App\Service\Bind\Query::class)]
+#[Bind(class: QueryService::class)]
 interface Query
 {
-    public const RESULT_TYPE_ARRAY = 0;
-    public const RESULT_TYPE_RAW = 4;
-
     /**
-     * @param Get $get
-     * @param callable|null $append
-     * @param int $resultType
+     * 智能查询模型
+     * @param QueryTemplateEntity $queryTemplateEntity
+     * @param $cloneQuery
      * @return mixed
      */
-    public function get(Get $get, ?callable $append = null, int $resultType = self::RESULT_TYPE_ARRAY): mixed;
+    public function findTemplateAll(QueryTemplateEntity $queryTemplateEntity, &$cloneQuery = null): mixed;
+
 
     /**
-     * @param Save $save
-     * @return mixed
+     * 智能创建或修改模型
+     * @param CreateObjectEntity $createObjectEntity
+     * @return array|bool
      */
-    public function save(Save $save): mixed;
+    public function createOrUpdateTemplate(CreateObjectEntity $createObjectEntity): bool|array;
+
 
     /**
-     * @param Delete $delete
+     * 自动删除主键模型
+     * @param DeleteBatchEntity $batchEntity
      * @return int
      */
-    public function delete(Delete $delete): int;
-
-
-    /**
-     * @param array $map
-     * @param string $field
-     * @param string $rule
-     * @return array
-     */
-    public function getOrderBy(array $map, string $field, string $rule = 'desc'): array;
+    public function deleteTemplate(DeleteBatchEntity $batchEntity): int;
 }

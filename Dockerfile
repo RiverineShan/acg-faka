@@ -12,7 +12,6 @@ RUN apt-get update \
         libonig-dev \
         libpng-dev \
         libzip-dev \
-    && if ! php -m | grep -qi '^curl$'; then docker-php-ext-install curl; fi \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j"$(nproc)" \
         bcmath \
@@ -38,40 +37,10 @@ COPY docker/php.ini /usr/local/etc/php/conf.d/acg-faka.ini
 COPY docker/entrypoint.sh /usr/local/bin/acg-faka-entrypoint
 
 RUN mkdir -p \
-        /usr/local/share/acg-faka \
-        /usr/local/share/acg-faka/default-config \
-        /usr/local/share/acg-faka/default-theme \
-        /usr/local/share/acg-faka/default-install \
-        /usr/local/share/acg-faka/default-waf \
+        /var/www/html/config \
+        /var/www/html/kernel/Install \
         /var/www/html/assets/cache \
-        /var/www/html/app/Pay \
-        /var/www/html/app/Plugin \
-        /var/www/html/app/View/User/Theme \
-        /var/www/html/kernel/Install/OS \
-        /var/www/html/kernel/Install/Update \
-        /var/www/html/runtime/log \
-        /var/www/html/runtime/plugin \
-        /var/www/html/runtime/request \
-        /var/www/html/runtime/tmp \
-        /var/www/html/runtime/view \
-        /var/www/html/runtime/waf \
-    && cp -a /var/www/html/config/app.php /usr/local/share/acg-faka/default-config/app.php \
-    && cp -a /var/www/html/config/dependencies.php /usr/local/share/acg-faka/default-config/dependencies.php \
-    && cp -a /var/www/html/config/waf/. /usr/local/share/acg-faka/default-waf/ \
-    && cp -a /var/www/html/app/View/User/Theme/. /usr/local/share/acg-faka/default-theme/ \
-    && cp -a /var/www/html/kernel/Install/. /usr/local/share/acg-faka/default-install/ \
-    && if [ -f /var/www/html/favicon.ico ]; then \
-        cp /var/www/html/favicon.ico /usr/local/share/acg-faka/favicon.ico; \
-        cp /var/www/html/favicon.ico /var/www/html/assets/cache/favicon.ico; \
-        ln -sf assets/cache/favicon.ico /var/www/html/favicon.ico; \
-    fi \
-    && if [ ! -d /var/www/html/vendor ] || [ ! -f /var/www/html/vendor/autoload.php ]; then \
-        composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction; \
-    else \
-        composer dump-autoload --optimize --no-interaction; \
-    fi \
-    && chown -R www-data:www-data /var/www/html \
-    && chmod -R ug+rwX /var/www/html \
+        /var/www/html/runtime \
     && chmod +x /usr/local/bin/acg-faka-entrypoint
 
 EXPOSE 80

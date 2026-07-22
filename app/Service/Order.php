@@ -7,9 +7,10 @@ namespace App\Service;
 use App\Model\Commodity;
 use App\Model\User;
 use App\Model\UserGroup;
+use App\Service\Impl\OrderService;
 use Kernel\Annotation\Bind;
 
-#[Bind(class: \App\Service\Bind\Order::class)]
+#[Bind(class: OrderService::class)]
 interface Order
 {
 
@@ -25,40 +26,13 @@ interface Order
     public function calcAmount(int $owner, int $num, Commodity $commodity, ?UserGroup $group, ?string $race = null, bool $disableSubstation = false): float;
 
     /**
-     * @param Commodity|int $commodity
-     * @param int $num
-     * @param string|null $race
-     * @param array|null $sku
-     * @param int|null $cardId
-     * @param string|null $coupon
-     * @param UserGroup|null $group
-     * @return string
-     */
-    public function valuation(Commodity|int $commodity, int $num = 1, ?string $race = null, ?array $sku = [], ?int $cardId = null, ?string $coupon = null, ?UserGroup $group = null): string;
-
-    /**
-     * @param Commodity|int $commodity
-     * @param int $num
-     * @param string|null $race
-     * @param array|null $sku
-     * @param int|null $cardId
-     * @return string
-     */
-    public function getCost(Commodity|int $commodity, int $num = 1, ?string $race = null, ?array $sku = [], ?int $cardId = null): string;
-
-    /**
-     * @param int $commodityId
-     * @param string|float|int $price
-     * @param UserGroup|null $group
-     * @return string
-     */
-    public function getValuationPrice(int $commodityId, string|float|int $price, ?UserGroup $group = null): string;
-
-    /**
      * @param Commodity $commodity
      * @param UserGroup|null $group
+     * @param int $owner
+     * @param int $num
+     * @param string|null $race
      */
-    public function parseConfig(Commodity &$commodity, ?UserGroup $group): void;
+    public function parseConfig(Commodity &$commodity, ?UserGroup $group, int $owner = 0, int $num = 1, ?string $race = null): void;
 
     /**
      * @param Commodity $commodity
@@ -85,12 +59,10 @@ interface Order
      * @param string $coupon
      * @param int|Commodity|null $commodityId
      * @param string|null $race
-     * @param array|null $sku
      * @param bool $disableShared
      * @return array
      */
-    public function getTradeAmount(?User $user, ?UserGroup $userGroup, int $cardId, int $num, string $coupon, int|Commodity|null $commodityId, ?string $race = null, ?array $sku = [], bool $disableShared = false): array;
-
+    public function getTradeAmount(?User $user, ?UserGroup $userGroup, int $cardId, int $num, string $coupon, int|Commodity|null $commodityId, ?string $race = null, bool $disableShared = false): array;
 
     /**
      * @param string $handle
@@ -100,15 +72,7 @@ interface Order
     public function callback(string $handle, array $map): string;
 
     /**
-     * @param string $handle
-     * @param array $map
-     * @return string|null
-     */
-    public function getCallbackTradeNo(string $handle, array $map): ?string;
-
-    /**
      * @param \App\Model\Order $order
-     * @return string
      */
     public function orderSuccess(\App\Model\Order $order): string;
 

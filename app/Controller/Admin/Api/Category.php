@@ -7,22 +7,16 @@ namespace App\Controller\Admin\Api;
 use App\Controller\Base\API\Manage;
 use App\Entity\CreateObjectEntity;
 use App\Entity\DeleteBatchEntity;
-use App\Entity\Query\Delete;
-use App\Entity\Query\Get;
-use App\Entity\Query\Save;
 use App\Entity\QueryTemplateEntity;
 use App\Interceptor\ManageSession;
 use App\Model\ManageLog;
 use App\Service\Query;
 use App\Util\Client;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Kernel\Annotation\Inject;
 use Kernel\Annotation\Interceptor;
 use Kernel\Context\Interface\Request;
 use Kernel\Exception\JSONException;
-use Kernel\Exception\NotFoundException;
-use Kernel\Exception\RuntimeException;
 use Kernel\Waf\Filter;
 
 /**
@@ -41,26 +35,25 @@ class Category extends Manage
     public function data(): array
     {
         $map = $_POST;
-        $get = new Get(\App\Model\Category::class);
-        $get->setWhere($map);
-        $get->setOrderBy(...$this->query->getOrderBy($map, "sort", "asc"));
-        $data = $this->query->get($get, function (Builder $builder) use ($map) {
-            if (isset($map['user_id']) && $map['user_id'] > 0) {
-                $builder = $builder->where("owner", $map['user_id']);
-            } else {
-                $builder = $builder->where("owner", 0);
-            }
+        $queryTemplateEntity = new QueryTemplateEntity();
+        $queryTemplateEntity->setModel(\App\Model\Category::class);
+        $queryTemplateEntity->setLimit((int)$_POST['limit']);
+        $queryTemplateEntity->setPage((int)$_POST['page']);
+        $queryTemplateEntity->setPaginate(true);
+        $queryTemplateEntity->setWhere($map);
+        $queryTemplateEntity->setOrder('sort', 'asc');
+        $queryTemplateEntity->setWith(['owner' => function (Relation $relation) {
+            $relation->select(["id", "username", "avatar"]);
+        }]);
+        $data = $this->query->findTemplateAll($queryTemplateEntity)->toArray();
 
-            return $builder->with(['owner' => function (Relation $relation) {
-                $relation->select(["id", "username", "avatar"]);
-            }]);
-        });
-
-        foreach ($data['list'] as &$item) {
-            $item['share_url'] = Client::getUrl() . "/cat/{$item['id']}";
+        foreach ($data['data'] as $key => $val) {
+            $data['data'][$key]['share_url'] = Client::getUrl() . "?code=" . urlencode(base64_encode("a={$val['id']}"));
         }
 
-        return $this->json(data: $data);
+        $json = $this->json(200, null, $data['data']);
+        $json['count'] = $data['total'];
+        return $json;
     }
 
 
@@ -68,17 +61,15 @@ class Category extends Manage
      * @param Request $request
      * @return array
      * @throws JSONException
-     * @throws NotFoundException
-     * @throws RuntimeException
-     * @throws \ReflectionException
      */
     public function save(Request $request): array
     {
         $map = $request->post(flags: Filter::NORMAL);
-        $save = new Save(\App\Model\Category::class);
-        $save->setMap($map);
-        $save->enableCreateTime();
-        $save = $this->query->save($save);
+        $createObjectEntity = new CreateObjectEntity();
+        $createObjectEntity->setModel(\App\Model\Category::class);
+        $createObjectEntity->setMap($map);
+        $createObjectEntity->setCreateDate("create_time");
+        $save = $this->query->createOrUpdateTemplate($createObjectEntity);
         if (!$save) {
             throw new JSONException("保存失败，请检查信息填写是否完整");
         }
@@ -91,19 +82,18 @@ class Category extends Manage
     /**
      * @return array
      * @throws JSONException
-     * @throws NotFoundException
-     * @throws \ReflectionException
      */
     public function del(): array
     {
         $list = (array)$_POST['list'];
-        $del = new Delete(\App\Model\Category::class, $list);
-        $count = $this->query->delete($del);
+        $deleteBatchEntity = new DeleteBatchEntity();
+        $deleteBatchEntity->setModel(\App\Model\Category::class);
+        $deleteBatchEntity->setList($list);
+        $count = $this->query->deleteTemplate($deleteBatchEntity);
         if ($count == 0) {
             throw new JSONException("没有移除任何数据");
         }
 
-        //删除所有商品
         foreach ($list as $id) {
             \App\Model\Commodity::query()->where("category_id", $id)->delete();
         }

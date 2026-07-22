@@ -5,9 +5,10 @@ namespace App\Service;
 
 
 use App\Model\Commodity;
+use App\Service\Impl\SharedService;
 use Kernel\Annotation\Bind;
 
-#[Bind(class: \App\Service\Bind\Shared::class)]
+#[Bind(class: SharedService::class)]
 interface Shared
 {
 
@@ -29,13 +30,6 @@ interface Shared
      */
     public function items(\App\Model\Shared $shared): ?array;
 
-    /**
-     * @param \App\Model\Shared $shared
-     * @param string $code
-     * @return array
-     */
-    public function item(\App\Model\Shared $shared, string $code): array;
-
 
     /**
      * @param \App\Model\Shared $shared
@@ -53,7 +47,7 @@ interface Shared
      * @param string $race
      * @return array
      */
-    public function inventory(\App\Model\Shared $shared, Commodity $commodity, string $race = ""): array;
+    public function inventory(\App\Model\Shared $shared,  Commodity $commodity, string $race = ""): array;
 
 
     /**
@@ -66,76 +60,19 @@ interface Shared
      * @param int $device
      * @param string $password
      * @param string $race
-     * @param array|null $sku
      * @param string|null $widget
      * @param string $requestNo
      * @return string
      */
-    public function trade(\App\Model\Shared $shared, Commodity $commodity, string $contact, int $num, int $cardId, int $device, string $password, string $race, ?array $sku, ?string $widget, string $requestNo): string;
+    public function trade(\App\Model\Shared $shared, Commodity $commodity, string $contact, int $num, int $cardId, int $device, string $password, string $race, ?string $widget, string $requestNo): string;
 
     /**
      * @param \App\Model\Shared $shared
-     * @param string $code
-     * @param array $map
+     * @param string $sharedCode
+     * @param int $limit
+     * @param int $page
+     * @param string $race
      * @return array
      */
-    public function draftCard(\App\Model\Shared $shared, string $code, array $map = []): array;
-
-    /**
-     * @param \App\Model\Shared $shared
-     * @param string $code
-     * @param int $cardId
-     * @return array
-     */
-    public function getDraft(\App\Model\Shared $shared, string $code, int $cardId): array;
-
-
-    /**
-     * @param Commodity $commodity
-     * @param \App\Model\Shared $shared
-     * @param string $code
-     * @param string|null $race
-     * @param null|array $sku
-     * @return string
-     */
-    public function getItemStock(Commodity $commodity, \App\Model\Shared $shared, string $code, ?string $race = null, ?array $sku = []): string;
-
-
-    /**
-     * @param Commodity $commodity
-     * @param \App\Model\Shared $shared
-     * @param string $code
-     * @param int $num
-     * @param string|null $race
-     * @param array|null $sku
-     * @param int|null $cardId
-     * @return string|float|int
-     */
-    public function getValuation(Commodity $commodity, \App\Model\Shared $shared, string $code, int $num, ?string $race = null, ?array $sku = [], ?int $cardId = 0): string|float|int;
-
-    /**
-     * @param string $config
-     * @param string $price
-     * @param string $userPrice
-     * @param int $type
-     * @param float $premium
-     * @return array
-     */
-    public function AdjustmentPrice(string $config, string $price, string $userPrice, int $type, float $premium): array;
-
-
-    /**
-     * @param int $type
-     * @param float $premium
-     * @param string|int|float $amount
-     * @return string
-     */
-    public function AdjustmentAmount(int $type, float $premium, string|int|float $amount): string;
-
-
-    /**
-     * @param Commodity|int $commodity
-     * @return bool
-     */
-    public function syncRemoteItem(Commodity|int $commodity): bool;
+    public function draftCard(\App\Model\Shared $shared, string $sharedCode, int $limit, int $page, string $race): array;
 }

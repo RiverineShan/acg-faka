@@ -29,30 +29,6 @@ class Arr
         return $arr;
     }
 
-    /**
-     * @param array $arr
-     * @param string|null $chain
-     * @return bool
-     */
-    public static function has(array $arr, ?string $chain): bool
-    {
-        if (!$chain) {
-            return false;
-        }
-
-        $keys = explode('.', trim($chain));
-        $len = count($keys);
-        for ($i = 0; $i < $len; $i++) {
-            if (isset($arr[$keys[$i]])) {
-                $arr = $arr[$keys[$i]];
-            } else {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
 
     /**
      * @param string $chain
@@ -110,16 +86,4 @@ class Arr
         return (array)json_decode(json_encode($xml), true) ?: [];
     }
 
-
-    /**
-     * @param mixed $primary
-     * @param mixed $fallback
-     * @return array
-     */
-    public static function override(mixed $primary, mixed $fallback): array
-    {
-        $primary = is_array($primary) ? $primary : [];
-        $fallback = is_array($fallback) ? $fallback : [];
-        return $primary + $fallback;
-    }
 }

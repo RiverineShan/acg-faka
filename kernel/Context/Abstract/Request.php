@@ -4,7 +4,6 @@ declare (strict_types=1);
 namespace Kernel\Context\Abstract;
 
 
-use Kernel\Exception\RuntimeException;
 use Kernel\Util\Arr;
 use Kernel\Waf\Filter;
 use Kernel\Waf\Firewall;
@@ -13,11 +12,8 @@ abstract class Request implements \Kernel\Context\Interface\Request
 {
     protected string $method;
     protected array $post = [];
-    protected array $_unsafe_post = [];
     protected array $get = [];
-    protected array $_unsafe_get = [];
     protected array $json = [];
-    protected array $_unsafe_json = [];
     protected array $header = [];
     protected array $cookie = [];
     protected array $files = [];
@@ -31,23 +27,19 @@ abstract class Request implements \Kernel\Context\Interface\Request
     protected string $uriSuffix;
 
 
-    /**
-     * @throws \HTMLPurifier_Exception
-     * @throws RuntimeException
-     * @throws \ReflectionException
-     */
     public function __construct()
     {
+
         $_POST = $this->post = Firewall::instance()->xssKiller($this->post);
         $_GET = $this->get = Firewall::instance()->xssKiller($this->get);
         $_REQUEST = Firewall::instance()->xssKiller($_REQUEST);
-        $_SERVER = Firewall::instance()->xssKiller($_SERVER);
         $this->json = Firewall::instance()->xssKiller($this->json);
 
 
         $_POST = Firewall::inst()->filterContent($_POST, Filter::STRING_UNSIGNED);
         $_GET = Firewall::inst()->filterContent($_GET, Filter::STRING_UNSIGNED);
         $_REQUEST = Firewall::inst()->filterContent($_REQUEST, Filter::STRING_UNSIGNED);
+
     }
 
     /**
@@ -82,11 +74,6 @@ abstract class Request implements \Kernel\Context\Interface\Request
         return Firewall::instance()->filterContent($this->post, $flags);
     }
 
-    public function unsafePost(?string $key = null): mixed
-    {
-        return Arr::get($this->_unsafe_post, $key);
-    }
-
     /**
      * @param string|null $key
      * @param int $flags
@@ -112,15 +99,6 @@ abstract class Request implements \Kernel\Context\Interface\Request
             return Firewall::instance()->filterContent(Arr::get($this->get, $key), $flags);
         }
         return Firewall::instance()->filterContent($this->get, $flags);
-    }
-
-    /**
-     * @param string|null $key
-     * @return mixed
-     */
-    public function unsafeGet(?string $key = null): mixed
-    {
-        return Arr::get($this->_unsafe_get, $key);
     }
 
 
@@ -159,16 +137,6 @@ abstract class Request implements \Kernel\Context\Interface\Request
             return Firewall::instance()->filterContent(Arr::get($this->json, $key), $flags);
         }
         return Firewall::instance()->filterContent($this->json, $flags);
-    }
-
-
-    /**
-     * @param string|null $key
-     * @return mixed
-     */
-    public function unsafeJson(?string $key = null): mixed
-    {
-        return Arr::get($this->_unsafe_json, $key);
     }
 
 

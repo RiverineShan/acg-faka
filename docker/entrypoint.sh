@@ -1,72 +1,97 @@
-#!/bin/sh
+#!/bin/bash
 set -e
 
-cd /var/www/html
+# --- ensure core directories exist ---
+mkdir -p /var/www/html/config
+mkdir -p /var/www/html/kernel/Install
+mkdir -p /var/www/html/assets/cache
+mkdir -p /var/www/html/runtime
 
-# 这些目录都会在运行期被安装器、插件市场、上传接口、模板引擎、
-# WAF/请求日志、在线更新等逻辑写入。容器启动时再修一次，是为了兼容
-# 已存在的 named volume 或从旧版本 docker-compose 迁移过来的 volume。
-mkdir -p \
-    assets/cache \
-    app/Pay \
-    app/Plugin \
-    app/View/User/Theme \
-    config \
-    kernel/Install/OS \
-    kernel/Install/Update \
-    runtime/log \
-    runtime/plugin \
-    runtime/request \
-    runtime/tmp \
-    runtime/view \
-    runtime/waf
-
-# Zeabur 等平台的持久化卷初次挂载时可能是空目录，会把镜像内的默认配置、
-# 默认主题和安装资源“盖掉”。这里只恢复基础配置，绝不覆盖安装后写入的
-# config/database.php，避免把真实数据库连接顶回示例值。
-if [ ! -f config/app.php ]; then
-    cp -a /usr/local/share/acg-faka/default-config/app.php config/app.php
+# --- default config placeholders (only if file missing) ---
+if [ ! -f /var/www/html/config/app.php ]; then
+  cat > /var/www/html/config/app.php << 'APPCFG'
+<?php
+return [
+    'version' => '3.1.9',
+    'debug' => false,
+];
+APPCFG
 fi
 
-if [ ! -f config/dependencies.php ]; then
-    cp -a /usr/local/share/acg-faka/default-config/dependencies.php config/dependencies.php
+if [ ! -f /var/www/html/config/store.php ]; then
+  cat > /var/www/html/config/store.php << 'STORECFG'
+<?php
+return [
+    'app_id' => '',
+    'app_key' => '',
+    'server' => 0,
+];
+STORECFG
 fi
 
-if [ ! -d config/waf ] || [ -z "$(ls -A config/waf 2>/dev/null)" ]; then
-    mkdir -p config/waf
-    cp -a /usr/local/share/acg-faka/default-waf/. config/waf/
+if [ ! -f /var/www/html/config/dependencies.php ]; then
+  cat > /var/www/html/config/dependencies.php << 'DEPCFG'
+<?php
+return [];
+DEPCFG
 fi
 
-if [ ! -f app/View/User/Theme/Cartoon/Config.php ]; then
-    cp -a /usr/local/share/acg-faka/default-theme/. app/View/User/Theme/
+# --- database config: persist from volume, fallback to env ---
+if [ ! -f /var/www/html/config/database.php ]; then
+  DB_HOST="${DB_HOST:-mysql}"
+  DB_NAME="${DB_NAME:-zeabur}"
+  DB_USER="${DB_USER:-acgapp}"
+  DB_PASS="${DB_PASS:-}"
+  DB_PREFIX="${DB_PREFIX:-acg_}"
+  cat > /var/www/html/config/database.php << DBCFG
+<?php
+return [
+    'driver' => 'mysql',
+    'host' => '${DB_HOST}',
+    'database' => '${DB_NAME}',
+    'username' => '${DB_USER}',
+    'password' => '${DB_PASS}',
+    'charset' => 'utf8mb4',
+    'collation' => 'utf8mb4_general_ci',
+    'prefix' => '${DB_PREFIX}',
+];
+DBCFG
+  echo "[entrypoint] database.php created"
+else
+  echo "[entrypoint] database.php already exists, skip"
 fi
 
-if [ ! -f kernel/Install/Install.sql ]; then
-    cp -a /usr/local/share/acg-faka/default-install/. kernel/Install/
+# --- ensure Lock file for post-install state ---
+if [ ! -f /var/www/html/kernel/Install/Lock ]; then
+  # check if DB has tables (meaning installed)
+  php -r "
+    \$cfg = require '/var/www/html/config/database.php';
+    try {
+      \$pdo = new PDO(
+        'mysql:host='.\$cfg['host'].';dbname='.\$cfg['database'],
+        \$cfg['username'], \$cfg['password']
+      );
+      \$tables = \$pdo->query('SHOW TABLES')->fetchAll();
+      if (count(\$tables) > 0) {
+        file_put_contents('/var/www/html/kernel/Install/Lock', (string)time());
+        echo 'Lock created (DB has tables)' . PHP_EOL;
+      } else {
+        echo 'DB empty, no Lock created' . PHP_EOL;
+      }
+    } catch (Exception \$e) {
+      echo 'Cannot connect to DB: ' . \$e->getMessage() . PHP_EOL;
+    }
+  "
 fi
 
-# 后台“基础设置”会把上传的 Logo 写到 /favicon.ico。
-# 将它落到 assets/cache 这个持久化卷中，避免容器重建后丢失。
-if [ ! -f assets/cache/favicon.ico ]; then
-    if [ -f /usr/local/share/acg-faka/favicon.ico ]; then
-        cp /usr/local/share/acg-faka/favicon.ico assets/cache/favicon.ico
-    else
-        : > assets/cache/favicon.ico
-    fi
+# --- composer install if needed ---
+if [ ! -d /var/www/html/vendor ] || [ ! -f /var/www/html/vendor/autoload.php ]; then
+  composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction
+else
+  composer dump-autoload --optimize --no-interaction
 fi
 
-if [ ! -L favicon.ico ]; then
-    rm -f favicon.ico
-    ln -s assets/cache/favicon.ico favicon.ico
-fi
+chown -R www-data:www-data /var/www/html
+chmod -R ug+rwX /var/www/html
 
-chown -R www-data:www-data \
-    assets/cache \
-    app/Pay \
-    app/Plugin \
-    app/View/User/Theme \
-    config \
-    kernel/Install \
-    runtime
-
-exec docker-php-entrypoint "$@"
+exec "$@"

@@ -5,17 +5,18 @@ namespace App\Controller\User\Api;
 
 
 use App\Controller\Base\API\User;
-use App\Entity\Query\Get;
-use App\Entity\Query\Save;
+use App\Entity\CreateObjectEntity;
+use App\Entity\DeleteBatchEntity;
+use App\Entity\QueryTemplateEntity;
 use App\Interceptor\Business;
 use App\Interceptor\UserSession;
 use App\Interceptor\Waf;
 use App\Service\Query;
 use App\Util\Client;
-use App\Util\Date;
 use App\Util\Ini;
 use App\Util\Str;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Kernel\Annotation\Inject;
 use Kernel\Annotation\Interceptor;
 use Kernel\Context\Interface\Request;
@@ -35,46 +36,31 @@ class Commodity extends User
     {
         $map = $_POST;
         $map['equal-owner'] = $this->getUser()->id;
-        $get = new Get(\App\Model\Commodity::class);
-        $get->setPaginate((int)$this->request->post("page"), (int)$this->request->post("limit"));
-        $get->setOrderBy(...$this->query->getOrderBy($map, "sort", "asc"));
-        $get->setWhere($map);
+        $queryTemplateEntity = new QueryTemplateEntity();
+        $queryTemplateEntity->setModel(\App\Model\Commodity::class);
+        $queryTemplateEntity->setLimit((int)$_POST['limit']);
+        $queryTemplateEntity->setPage((int)$_POST['page']);
+        $queryTemplateEntity->setPaginate(true);
+        $queryTemplateEntity->setWhere($map);
+        $queryTemplateEntity->setOrder('sort', 'asc');
+        $queryTemplateEntity->setWith(['category']);
+        $queryTemplateEntity->setWithCount(['card as card_count' => function (Builder $builder) {
+            $builder->where("status", 0);
+        }]);
+        $queryTemplateEntity->setWithCount(['card as card_success_count' => function (Builder $builder) {
+            $builder->where("status", 1);
+        }]);
 
-        $data = $this->query->get($get, function (Builder $builder) {
-            return $builder
-                ->where("owner", $this->getUser()->id)
-                ->with(['category'])
-                ->withCount([
-                    'card as card_count' => function (Builder $builder) {
-                        $builder->where("status", 0);
-                    },
-                    'card as card_success_count' => function (Builder $builder) {
-                        $builder->where("status", 1);
-                    },
-                    //商品总盈利
-                    'order as order_all_amount' => function (Builder $relation) {
-                        $relation->where("status", 1)->select(\App\Model\Order::query()->raw("COALESCE(sum(amount),0) as order_all_amount"));
-                    },
-                    //过去7天内盈利
-                    'order as order_week_amount' => function (Builder $relation) {
-                        $relation->whereBetween('create_time', [Date::weekDay(1, Date::TYPE_START), Date::weekDay(7, Date::TYPE_END)])->where("status", 1)->select(\App\Model\Order::query()->raw("COALESCE(sum(amount),0) as order_week_amount"));
-                    },
-                    //昨日盈利
-                    'order as order_yesterday_amount' => function (Builder $relation) {
-                        $relation->whereBetween('create_time', [Date::calcDay(-1), Date::calcDay()])->where("status", 1)->select(\App\Model\Order::query()->raw("COALESCE(sum(amount),0) as order_yesterday_amount"));
-                    },
-                    //今日盈利
-                    'order as order_today_amount' => function (Builder $relation) {
-                        $relation->whereBetween('create_time', [Date::calcDay(), Date::calcDay(1)])->where("status", 1)->select(\App\Model\Order::query()->raw("COALESCE(sum(amount),0) as order_today_amount"));
-                    }
-                ]);
-        });
 
-        foreach ($data['list'] as &$item) {
-            $item['share_url'] = Client::getUrl() . "/item/{$item['id']}";
+        $data = $this->query->findTemplateAll($queryTemplateEntity)->toArray();
+
+        foreach ($data['data'] as $key => $val) {
+            $data['data'][$key]['share_url'] = Client::getUrl() . "?cid={$val['category_id']}&mid={$val['id']}";
         }
 
-        return $this->json(data: $data);
+        $json = $this->json(200, null, $data['data']);
+        $json['count'] = $data['total'];
+        return $json;
     }
 
 
@@ -87,32 +73,37 @@ class Commodity extends User
     {
         $map = $request->post(flags: Filter::NORMAL);
         $user = $this->getUser();
+        $map['owner'] = $user->id;
 
+        $category = \App\Model\Category::query()->where("owner", $user->id)->find((int)$map['category_id']);
 
-        if (isset($map['category_id']) && !\App\Model\Category::query()->where("owner", $user->id)->where("id", $map['category_id'])->exists()) {
+        if (!$category) {
             throw new JSONException("分类不存在");
         }
 
         //--验证自身
-        if (!empty($map['id']) && !\App\Model\Commodity::query()->where("id", $map['id'])->where("owner", $user->id)->exists()) {
-            throw new JSONException("该商品不存在");
+        if ((int)$map['id'] != 0) {
+            $commodity = \App\Model\Commodity::query()->find($map['id']);
+            if (!$commodity || $commodity->owner != $user->id) {
+                throw new JSONException("该商品不存在");
+            }
         }
 
-        if (isset($map['name']) && empty($map['name'])) {
+        if (!$map['name']) {
             throw new JSONException("商品名称不能为空哦(｡￫‿￩｡)");
         }
 
-        if (isset($map['price']) && ($map['price'] < 0 || $map['user_price'] < 0)) {
+        if ((float)$map['price'] < 0 || (float)$map['user_price'] < 0) {
             throw new JSONException("商品单价不能低于0元哦(｡￫‿￩｡)");
         }
 
         //create new
-        if (!isset($map['id'])) {
+        if ((int)$map['id'] == 0) {
             $map['code'] = strtoupper(Str::generateRandStr(16));
         }
 
 
-        if (isset($map['seckill_status']) && $map['seckill_status'] == 1) {
+        if ($map['seckill_status'] == 1) {
             if (!$map['seckill_start_time'] || !$map['seckill_end_time']) {
                 throw new JSONException("您开启了秒杀功能，所以请指定秒杀的开始时间和结束时间哦(｡￫‿￩｡)");
             }
@@ -121,20 +112,18 @@ class Commodity extends User
             }
         }
 
-        if (isset($map['draft_status']) && $map['draft_status'] == 1) {
+        if ($map['draft_status'] == 1) {
             if ($map['draft_premium'] === "") {
                 throw new JSONException("您开启了预选卡密功能，请填写预选时的溢价(｡￫‿￩｡)");
             }
         }
 
-        if (isset($map['sort'])) {
-            if ($map['sort'] < 1000) {
-                throw new JSONException("排序最低设置1000");
-            }
+        if ((int)$map['sort'] < 1000) {
+            throw new JSONException("排序最低设置1000");
+        }
 
-            if ($map['sort'] > 60000) {
-                throw new JSONException("排序最高设置60000");
-            }
+        if ((int)$map['sort'] > 60000) {
+            throw new JSONException("排序最高设置60000");
         }
 
         //解析配置文件
@@ -142,12 +131,11 @@ class Commodity extends User
             Ini::toArray($map['config']);
         }
 
-        $save = new Save(\App\Model\Commodity::class);
-        $save->setMap($map);
-        $save->addForceMap("owner", $user->id);
-        $save->addForceMap("config", $map['config'] ?? "");
-        $save->enableCreateTime();
-        $save = $this->query->save($save);
+        $createObjectEntity = new CreateObjectEntity();
+        $createObjectEntity->setModel(\App\Model\Commodity::class);
+        $createObjectEntity->setMap($map, ["description", "delivery_message", "config"]);
+        $createObjectEntity->setCreateDate("create_time");
+        $save = $this->query->createOrUpdateTemplate($createObjectEntity);
         if (!$save) {
             throw new JSONException("保存失败，请检查信息填写是否完整");
         }
@@ -165,13 +153,17 @@ class Commodity extends User
         $id = (int)$_POST['id'];
 
         if ($id == 0) {
-            throw new JSONException("请选择删除的商品");
+            throw new JSONException("请选择删除的分类");
         }
 
-        $commodity = \App\Model\Commodity::query()->where("owner", $this->getUser()->id)->find($id);
+        $commodity = \App\Model\Commodity::query()->find($id);
 
         if (!$commodity) {
             throw new JSONException("商品不存在");
+        }
+
+        if ($commodity->owner != $this->getUser()->id) {
+            throw new JSONException("该商品不属于你");
         }
 
         $commodity->delete();

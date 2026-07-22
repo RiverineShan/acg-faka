@@ -123,28 +123,34 @@ if (!function_exists("setConfig")) {
      */
     function setConfig(array $data, string $file, bool $reset = false): void
     {
-        $config = [];
-
-        if (!$reset && is_file($file)) {
-            $loaded = require $file;
-            if (is_array($loaded)) {
-                $config = $loaded;
-            }
+        if (file_exists($file) && !$reset) {
+            $config = require($file);
+        } else {
+            $config = [];
         }
-
-        $config = array_replace($config, $data);
-
-        $content = <<<PHP
-<?php
-declare(strict_types=1);
-
-return %s;
-PHP;
-
-        $content = sprintf($content, var_export($config, true));
-
-        if (file_put_contents($file, $content, LOCK_EX) === false) {
-            throw new \Kernel\Exception\JSONException('没有文件写入权限');
+        foreach ($data as $x => $b) {
+            $config[$x] = $b;
+        }
+        //写入到文件
+        $ret = "<?php
+declare (strict_types=1);\n\nreturn [\n";
+        foreach ($config as $k => $v) {
+            if (is_array($v)) {
+                $akv = "[";
+                foreach ($v as $av) {
+                    $akv .= "'" . str_replace("'", "\\'", $av) . "'" . ",";
+                }
+                $akv = trim($akv, ",");
+                $akv .= "]";
+                $value = $akv;
+            } else {
+                $value = "'" . str_replace("'", "\\'", (string)$v) . "'";
+            }
+            $ret .= "    '{$k}' => $value,\n";
+        }
+        $ret .= '];';
+        if (file_put_contents($file, $ret) === false) {
+            throw new \Kernel\Exception\JSONException("没有文件写入权限");
         }
 
         Opcache::invalidate($file);
@@ -259,34 +265,6 @@ if (!function_exists("debug")) {
 }
 
 
-if (!function_exists("maskSensitive")) {
-    /**
-     * 递归屏蔽数组中的敏感字段，用于日志脱敏，避免明文密钥/密码/令牌落盘。
-     * 字段名匹配敏感模式时其值一律替换为 ***（不改变结构，仅隐去值）。
-     * @param mixed $data
-     * @return mixed
-     */
-    function maskSensitive(mixed $data): mixed
-    {
-        if (!is_array($data)) {
-            return $data;
-        }
-        static $pattern = '/(pass|pwd|secret|token|cookie|authorization|salt|private_?key|public_?key|app_?secret|api_?key|mch_?key|md5_?key|(^|_)key$|(^|_)sign$)/i';
-        $masked = [];
-        foreach ($data as $k => $v) {
-            if (is_array($v)) {
-                $masked[$k] = maskSensitive($v);
-            } elseif (is_string($k) && $v !== null && $v !== '' && preg_match($pattern, $k)) {
-                $masked[$k] = '***';
-            } else {
-                $masked[$k] = $v;
-            }
-        }
-        return $masked;
-    }
-}
-
-
 if (!function_exists("getPluginConfig")) {
     function getPluginConfig(string $name)
     {
@@ -311,121 +289,5 @@ if (!function_exists("Plugin")) {
     function Plugin(string $pluginName, string $src, bool $debug = false): string
     {
         return "/app/Plugin/{$pluginName}/{$src}?v=" . Plugin::getPlugin($pluginName)[\App\Consts\Plugin::VERSION] . (!$debug ?: "&debug=" . Str::generateRandStr(16));
-    }
-}
-
-
-if (!function_exists("_asset_mtime")) {
-    function _asset_mtime(string $resource): int
-    {
-        $plain = explode('?', $resource, 2)[0];
-        if (!str_starts_with($plain, "/")) {
-            return 0;
-        }
-        $path = BASE_PATH . ltrim($plain, "/");
-        if (!file_exists($path)) {
-            return 0;
-        }
-        return (int)filemtime($path);
-    }
-}
-
-if (!function_exists("css")) {
-    function css(array|string $resource, array|string|null $backup = null, bool $cdn = true): string
-    {
-        if (DEBUG && $backup !== null) {
-            $resource = $backup;
-        }
-        $res = '';
-        $debugRandom = DEBUG ? "&debug=" . Str::generateRandStr(8) : "";
-        $cdnSupport = $cdn ? 'class="cdn-support"' : '';
-        if (is_array($resource)) {
-            foreach ($resource as $item) {
-                $res .= sprintf(
-                    '<link rel="stylesheet" href="%s" ' . $cdnSupport . '>',
-                    $item . (str_contains($item, "?") ? "&" : "?") . 'v=' . APP_VERSION . '&m=' . _asset_mtime($item) . $debugRandom
-                );
-            }
-        } else {
-            $res = sprintf(
-                '<link rel="stylesheet" href="%s" ' . $cdnSupport . '>',
-                $resource . (str_contains($resource, "?") ? "&" : "?") . 'v=' . APP_VERSION . '&m=' . _asset_mtime($resource) . $debugRandom
-            );
-        }
-        return $res;
-    }
-}
-
-if (!function_exists("js")) {
-    function js(array|string $resource, array|string|null $backup = null, bool $cdn = true): string
-    {
-        if (DEBUG && $backup !== null) {
-            $resource = $backup;
-        }
-        $res = '';
-        $debugRandom = DEBUG ? "&debug=" . Str::generateRandStr(8) : "";
-        $cdnSupport = $cdn ? ' class="cdn-support"' : '';
-        if (is_array($resource)) {
-            foreach ($resource as $item) {
-                $res .= sprintf(
-                    '<script src="%s" ' . $cdnSupport . '></script>',
-                    $item . (str_contains($item, "?") ? "&" : "?") . 'v=' . APP_VERSION . '&m=' . _asset_mtime($item) . $debugRandom
-                );
-            }
-        } else {
-            $res = sprintf(
-                '<script src="%s" ' . $cdnSupport . '></script>',
-                $resource . (str_contains($resource, "?") ? "&" : "?") . 'v=' . APP_VERSION . '&m=' . _asset_mtime($resource) . $debugRandom
-            );
-        }
-        return $res;
-    }
-}
-
-
-if (!function_exists('ready_get_value')) {
-
-    /**
-     * @param mixed $value
-     * @return string|bool|null
-     */
-    function _ready_get_value(mixed $value): string|bool|null
-    {
-        if (is_numeric($value) || is_bool($value)) {
-            // 对于数字和布尔值，不添加双引号
-            $value = var_export($value, true);
-        } elseif (is_array($value)) {
-            // 如果是数组，转换为JSON
-            $value = json_encode($value);
-        } else {
-            // 对于字符串，进行转义并添加双引号
-            $value = addslashes((string)$value);
-            $value = "\"$value\"";
-        }
-        return $value;
-    }
-}
-
-
-if (!function_exists("ready")) {
-    function ready(string $resource, array $variable = []): string
-    {
-        $var = '';
-        foreach ($variable as $key => $value) {
-            $var .= "setVar('{$key}' , " . _ready_get_value($value) . ");";
-        }
-        return '<script>' . $var . 'ready("' . $resource . (str_contains($resource, "?") ? "&" : "?") . 'v=' . APP_VERSION . '&m=' . _asset_mtime($resource) . (DEBUG ? "&debug=" . Str::generateRandStr(8) : '') . '");</script>';
-    }
-}
-
-
-if (!function_exists("set_script_var")) {
-    function set_script_var(array $vars): string
-    {
-        $str = "<script>";
-        foreach ($vars as $name => $var) {
-            $str .= "setVar(\"{$name}\"," . _ready_get_value($var) . ");";
-        }
-        return $str . "</script>";
     }
 }

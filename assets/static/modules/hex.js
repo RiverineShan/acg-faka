@@ -67,12 +67,6 @@ layui.define(['layer', 'jquery', 'form', 'table', 'upload', 'laydate', 'authtree
         getDict(dict, done, keywords = '') {
             if (typeof dict === "string") {
                 $.post('/admin/api/dict/get', {dict: dict, keywords: keywords}, res => {
-                    if (res?.data?.length > 0) {
-                        for (const dataKey in res.data) {
-                            res.data[dataKey]["name"] = this.plainText(res.data[dataKey]?.name);
-                        }
-                    }
-
                     if (keywords == '') {
                         localStorage.setItem('user_' + dict, JSON.stringify(res));
                     }
@@ -426,7 +420,7 @@ layui.define(['layer', 'jquery', 'form', 'table', 'upload', 'laydate', 'authtree
                         d += '        <div class="layui-form-item" style="' + ((item.hasOwnProperty("hide") && item.hide && !(values.hasOwnProperty(item.name) && values[item.name] != "")) ? 'display:none;' : '') + '">\n' +
                             '            <label class="layui-form-label">' + item.title + required + '</label>\n' +
                             '            <div class="layui-input-block"><textarea name="' + item.name + '" style="display: none;"></textarea>\n' +
-                            '                <div style=""><button data-type="0" class="button-switch-' + item.name + '" type="button" style="width: 100%;border: none;background: white;border-radius: 5px 5px 0 0;color: #c9b8b8;"><i class="fas fa-code" style="color: #c9b8b8;"></i> HTML</button></div><div ' + (item.hasOwnProperty('height') ? 'style="height:' + item.height + 'px"' : '') + ' class="' + item.name + '"></div>' +
+                            '                <div style=""><button data-type="0" class="button-switch-' + item.name + '" type="button" style="width: 100%;border: none;background: white;border-radius: 5px 5px 0 0;color: #c9b8b8;"><i class="fas fa-code" style="color: #c9b8b8;"></i> HTML</button></div><div ' + (item.hasOwnProperty('height') ? 'style="height:' + item.height + 'px"' : '') + ' class="' + item.name + '">' + (values.hasOwnProperty(item.name) ? values[item.name] : '') + '</div>' +
                             '            </div>\n' +
                             '        </div>';
                         break;
@@ -643,7 +637,7 @@ layui.define(['layer', 'jquery', 'form', 'table', 'upload', 'laydate', 'authtree
                         done(ret);
                     });
                 },
-                success: (lay, index, that) => {
+                success: (layero, index) => {
                     fields.forEach(item => {
                         //上传url
                         let uploadUrl = item.hasOwnProperty('uploadUrl') ? item.uploadUrl : '/admin/api/upload/handle';
@@ -738,13 +732,9 @@ layui.define(['layer', 'jquery', 'form', 'table', 'upload', 'laydate', 'authtree
                                     }
                                     this.getDict(item.dict, res => {
                                         res.data.forEach(s => {
-                                            instance.append('<input  lay-filter="checkbox-' + item.name + '"  type="checkbox" ' + (val.indexOf(s.id) !== -1 || val.indexOf(s.id.toString()) !== -1 ? 'checked' : '') + ' value="' + s.id + '" name="' + item.name + '[]" title="' + s.name + '">\n');
+                                            instance.append('<input type="checkbox" ' + (val.indexOf(s.id) !== -1 || val.indexOf(s.id.toString()) !== -1 ? 'checked' : '') + ' value="' + s.id + '" name="' + item.name + '[]" title="' + s.name + '">\n');
                                         });
                                         form.render();
-                                    });
-                                    form.on(`checkbox(checkbox-${item.name})`, function (data) {
-                                        const elem = data.elem;
-                                        typeof item?.change == "function" && item.change(elem.value, elem.checked);
                                     });
                                 }
                                 break;
@@ -963,7 +953,6 @@ layui.define(['layer', 'jquery', 'form', 'table', 'upload', 'laydate', 'authtree
                                 });
                                 break;
                             case 'editor':
-                                const contents = values[item.name] ?? "";
                                 let editorInstance = window.wangEditor;
                                 const editor = new editorInstance('.hex-modal-' + unqueId + ' .' + item.name);
                                 const $textarea = $(".hex-modal-" + unqueId + " textarea[name='" + item.name + "'")
@@ -993,8 +982,7 @@ layui.define(['layer', 'jquery', 'form', 'table', 'upload', 'laydate', 'authtree
                                 }
 
                                 editor.create();
-                                $textarea.val(contents)
-                                editor.txt.html(contents);
+                                $textarea.val(editor.txt.html())
 
                                 $('.hex-modal-' + unqueId + ' div[class=' + item.name + ']').find(".w-e-toolbar").css("border", "none");
                                 $('.hex-modal-' + unqueId + ' div[class=' + item.name + ']').find(".w-e-text-container").css("border", "none");
@@ -1249,15 +1237,6 @@ layui.define(['layer', 'jquery', 'form', 'table', 'upload', 'laydate', 'authtree
                     await this.timer(call, millisecond, false);
                 }
             }, millisecond);
-        },
-        plainText(text) {
-            if (typeof text !== 'string') {
-                return text;
-            }
-            // 去除HTML标签
-            const noHtml = text.replace(/<[^>]*>/g, '');
-            // 去除前后空格和换行
-            return noHtml.trim();
         }
     }
 

@@ -3,9 +3,10 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\Service\Impl\SmsService;
 use Kernel\Annotation\Bind;
 
-#[Bind(class: \App\Service\Bind\Sms::class)]
+#[Bind(class: SmsService::class)]
 interface Sms
 {
     const CAPTCHA_REGISTER = 0x1;

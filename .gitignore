@@ -1,2 +1,6 @@
+/config/*
+!/config/.gitkeep
+/runtime/*
+/kernel/Install/Lock
+/assets/cache/*
 .env
-.env.local

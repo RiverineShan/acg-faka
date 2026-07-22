@@ -3,9 +3,10 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\Service\Impl\EmailService;
 use Kernel\Annotation\Bind;
 
-#[Bind(class: \App\Service\Bind\Email::class)]
+#[Bind(class: EmailService::class)]
 interface Email
 {
     const CAPTCHA_REGISTER = 0x1;
