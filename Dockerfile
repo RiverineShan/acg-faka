@@ -40,6 +40,7 @@ COPY docker/entrypoint.sh /usr/local/bin/acg-faka-entrypoint
 RUN mkdir -p \
         /usr/local/share/acg-faka \
         /usr/local/share/acg-faka/default-config \
+        /usr/local/share/acg-faka/default-pay \
         /usr/local/share/acg-faka/default-theme \
         /usr/local/share/acg-faka/default-install \
         /usr/local/share/acg-faka/default-waf \
@@ -57,6 +58,7 @@ RUN mkdir -p \
         /var/www/html/runtime/waf \
     && cp -a /var/www/html/config/app.php /usr/local/share/acg-faka/default-config/app.php \
     && cp -a /var/www/html/config/dependencies.php /usr/local/share/acg-faka/default-config/dependencies.php \
+    && cp -a /var/www/html/app/Pay/. /usr/local/share/acg-faka/default-pay/ \
     && cp -a /var/www/html/config/waf/. /usr/local/share/acg-faka/default-waf/ \
     && cp -a /var/www/html/app/View/User/Theme/. /usr/local/share/acg-faka/default-theme/ \
     && cp -a /var/www/html/kernel/Install/. /usr/local/share/acg-faka/default-install/ \
