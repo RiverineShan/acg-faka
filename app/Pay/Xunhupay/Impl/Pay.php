@@ -41,7 +41,8 @@ class Pay extends Base implements \App\Pay\Pay
             'callback_url' => $this->returnUrl,
             'nonce_str' => Str::generateRandStr(),
         ];
-        if(Signature::isMobile()){
+        $forceDesktopQr = (string)$this->code === '1';
+        if(!$forceDesktopQr && Signature::isMobile()){
           $param['type'] = "WAP";
           $param['wap_url'] = $this->config['domain'];
           $param['wap_name'] = $this->config['shop_name'];
@@ -64,12 +65,12 @@ class Pay extends Base implements \App\Pay\Pay
         }
 
         $payEntity = new PayEntity();
-        if(Signature::isMobile()){
+        if(!$forceDesktopQr && Signature::isMobile()){
           $payEntity->setType(self::TYPE_REDIRECT);
           $payEntity->setUrl($url);
         }else{
           $payEntity->setType(self::TYPE_LOCAL_RENDER);
-          $payEntity->setUrl($json['url_qrcode']);
+          $payEntity->setUrl($json['url_qrcode'] ?? $url);
         }
         return $payEntity;
     }
