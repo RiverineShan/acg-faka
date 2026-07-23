@@ -21,7 +21,6 @@
                                 <span class="badge-soft snap-up" style="display: none;"></span>
                             #{/if}
                             <span class="badge-soft badge-soft-success">#{if $item.delivery_way == 0}自动发货#{else}在线发货#{/if}</span>
-                            <span class="badge-soft badge-soft-primary">已售 #{$item.order_sold}</span>
                             #{if $item.inventory_hidden != 1}
                                 <span class="badge-soft badge-soft-success item-stock">库存 #{$item.stock}</span>
                             #{/if}

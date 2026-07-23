@@ -3,6 +3,12 @@
     let _price = 0, _available = false;
     const $vstack = $(`.vstack`), $cashPay = $(`.cash-pay`);
 
+    // Sales remain available to the backend, but are intentionally hidden
+    // from customers on the product detail page.
+    $(`.badge-soft`).filter(function () {
+        return $(this).text().trim().startsWith("已售");
+    }).remove();
+
     function _getPostData() {
         let post = util.arrayToObject($vstack.serializeArray());
         post["item_id"] = _item.id;

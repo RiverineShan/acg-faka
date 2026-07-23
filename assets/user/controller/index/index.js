@@ -31,7 +31,7 @@
               <div class="stat-row mb-1">
                 <div class="price"><span class="unit">¥</span>${item.price}</div>
               </div>
-              <div class="stat-bottom">${showStock ? `<span>库存：${item.stock}</span>` : ``}<span>已售：${item.order_sold}</span></div>
+              <div class="stat-bottom">${showStock ? `<span>库存：${item.stock}</span>` : ``}</div>
             </div>
             ${isSoldOut ? `<div class="soldout-ribbon">售罄</div>` : ``}
           </div>
