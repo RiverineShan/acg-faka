@@ -1,0 +1,48 @@
+<html><head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="keywords" content="">
+    <meta name="description" content="">
+    <link rel="icon" href="/app/Pay/Xunhupay/View/Assets/img/wxpaylogo.png">
+    <link href="/app/Pay/Xunhupay/View/Assets/css/style.css" rel="stylesheet" type="text/css">
+    <script src="/assets/static/jquery.min.js"></script>
+    <script src="/assets/static/layer/layer.js"></script>
+    <title>微信支付收银台</title>
+    </head>
+    <body>
+    <div class="xh-title">微信支付收银台</div>
+      <div class="qrbox clearfix">
+      <div class="left">
+             <div class="qrcon">
+               <h5><img src="/app/Pay/Xunhupay/View/Assets/img/WxPayLogo.jpg" alt="" style="width: 120px;"/></h5>
+                 <div class="title">#{$order.trade_no}</div>
+                 <div class="price">￥#{number_format($order.amount, 2)}</div>
+                 <div align="center" style="position:relative;">
+                   <div style="width: 230px;height: 230px;margin-bottom: 10px;">
+                     <img src="#{$order.pay_url}"/>
+                   </div>
+                 </div>
+                 <div id="query_result" class="bottom">打开手机微信支付，扫描二维码完成支付</div>
+             </div>
+      </div>
+         <div class="sys" ><img src="/app/Pay/Xunhupay/View/Assets/img/wechat-sys.png" alt=""></div>
+      </div>
+    <script type="text/javascript" src="/app/Pay/Xunhupay/View/Assets/js/pay.js"></script>
+    <script>
+        let tradeNo = '#{$order.trade_no}';
+        //查询订单
+        pay.queryTimer(tradeNo, null, res => {
+            layer.msg('支付成功');
+            setTimeout(() => {
+                window.location.href = "/user/index/query?tradeNo=" + tradeNo;
+            }, 1000);
+        }, res => {
+            layer.msg('订单已被关闭');
+            setTimeout(() => {
+                window.location.href = "/user/index/query?tradeNo=" + tradeNo;
+            }, 1000);
+        });
+    </script>
+    </body>
+    </html>
