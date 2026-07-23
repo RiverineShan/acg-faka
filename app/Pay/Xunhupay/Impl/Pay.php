@@ -26,7 +26,10 @@ class Pay extends Base implements \App\Pay\Pay
 
         $appid = $this->config["c{$this->code}_appId"];
         $hashKey = $this->config["c{$this->code}_key"];
-        $url = $this->config["c{$this->code}_url"];
+        $url = trim((string)($this->config["c{$this->code}_url"] ?? ''));
+        if (filter_var($url, FILTER_VALIDATE_URL) === false) {
+            $url = 'https://api.xunhupay.com/payment/do.html';
+        }
 
         $param = [
             'version' => '1.1',
