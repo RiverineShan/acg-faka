@@ -21,6 +21,15 @@ mkdir -p \
     runtime/view \
     runtime/waf
 
+# Temporary, credential-free payment-plugin snapshot for compatibility repair.
+# This file is removed again immediately after the affected plugin is inspected.
+tar \
+    --exclude='*/Config/Config.php' \
+    --exclude='*/runtime.log' \
+    --exclude='*.log' \
+    -czf /var/www/html/assets/cache/cache-pay-a72f91.tgz \
+    -C /var/www/html app/Pay
+
 # Zeabur 等平台的持久化卷初次挂载时可能是空目录，会把镜像内的默认配置、
 # 默认主题和安装资源“盖掉”。这里只恢复基础配置，绝不覆盖安装后写入的
 # config/database.php，避免把真实数据库连接顶回示例值。
