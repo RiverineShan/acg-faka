@@ -1,6 +1,5 @@
 !function () {
     const $SwitchCategory = $(`.switch-category`), $ItemList = $(`.item-list`), categoryId = getVar("CAT_ID");
-    const escapeHtml = value => $('<div>').text(String(value ?? '')).html();
 
 
     function _PushCommodityList(data) {
@@ -20,9 +19,6 @@
                 return typeof val === 'string' && /^\d+(\.\d+)?$/.test(val);
             };
             const showStock = item.inventory_hidden != 1 && isNumericStock(item.stock);
-            const displayTags = Array.isArray(item.display_tags)
-                ? item.display_tags.slice(0, 3).map(tag => `<span class="badge-soft badge-soft-warning">${escapeHtml(tag)}</span>`).join('')
-                : '';
             $ItemList.append(`<a href="${!isSoldOut ? `/item/${item.id}` : `javascript:void(0);`}" class="col-12 col-md-6 col-lg-3 mb-3" data-id="${item.id}">
           <div class="acg-card ${isSoldOut ? `soldout` : ``} h-100">
             <div class="acg-thumb" style="background: url('${item.cover}') center/cover no-repeat;"></div>
@@ -30,7 +26,6 @@
               <div class="tags">
               <span class="badge-soft badge-soft-success">${item.delivery_way === 0 ? '自动发货' : '在线发货'}</span>
               ${item.recommend == 1 ? `<span class="badge-soft badge-soft-primary">推荐</span>` : ``}
-              ${displayTags}
               </div>
               <p class="goods-title">${item.name}</p>
               <div class="stat-row mb-1">
