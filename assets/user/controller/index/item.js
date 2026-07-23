@@ -2,12 +2,20 @@
     const _item = getVar("_var_item");
     let _price = 0, _available = false;
     const $vstack = $(`.vstack`), $cashPay = $(`.cash-pay`);
+    const escapeHtml = value => $('<div>').text(String(value ?? '')).html();
 
     // Sales remain available to the backend, but are intentionally hidden
     // from customers on the product detail page.
     $(`.badge-soft`).filter(function () {
         return $(this).text().trim().startsWith("已售");
     }).remove();
+
+    if (Array.isArray(_item?.config?.display_tags) && _item.config.display_tags.length) {
+        const $tagRow = $(`h4`).first().next(`.d-flex`);
+        _item.config.display_tags.slice(0, 6).forEach(tag => {
+            $tagRow.append(`<span class="badge-soft badge-soft-warning">${escapeHtml(tag)}</span>`);
+        });
+    }
 
     function _getPostData() {
         let post = util.arrayToObject($vstack.serializeArray());

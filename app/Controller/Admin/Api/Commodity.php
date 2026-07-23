@@ -31,6 +31,27 @@ class Commodity extends Manage
     #[Inject]
     private Query $query;
 
+    /**
+     * Turn the merchant-facing comma/newline separated value into a small,
+     * predictable list which is safe to expose on storefronts.
+     *
+     * @return string[]
+     */
+    private function displayTags(mixed $value): array
+    {
+        if (is_array($value)) {
+            $value = implode(',', $value);
+        }
+
+        $tags = preg_split('/[,，\r\n]+/u', (string)$value) ?: [];
+        $tags = array_values(array_unique(array_filter(array_map(static function ($tag): string {
+            $tag = trim(strip_tags((string)$tag));
+            return mb_substr($tag, 0, 12);
+        }, $tags))));
+
+        return array_slice($tags, 0, 6);
+    }
+
     private const BATCH_SETTING_FIELDS = [
         'api_status',
         'password_status',
@@ -236,6 +257,8 @@ class Commodity extends Manage
                 }
             }
             $val['share_url'] = $url . "/item/{$val['id']}";
+            $config = Ini::toArray((string)($val['config'] ?? ''));
+            $val['display_tags'] = implode('，', array_values($config['display_tags'] ?? []));
             //顶级分类 -> 子分类 -> 商品所属分类
             $val['category_path'] = \App\Model\Category::resolvePath((int)($val['category_id'] ?? 0), $categoryFlatMap);
         }
@@ -253,6 +276,8 @@ class Commodity extends Manage
     public function save(Request $request): array
     {
         $raw = $request->post(flags: Filter::NORMAL);
+        $displayTagsProvided = array_key_exists('display_tags', $raw);
+        $displayTags = $this->displayTags($raw['display_tags'] ?? '');
         $allowed = [
             'id', 'category_id', 'name', 'description', 'cover', 'factory_price', 'price', 'user_price',
             'status', 'api_status', 'delivery_way', 'delivery_auto_mode', 'delivery_message', 'contact_type',
@@ -271,6 +296,16 @@ class Commodity extends Manage
         $current = $id > 0 ? \App\Model\Commodity::query()->find($id) : null;
         if ($id > 0 && !$current) {
             throw new JSONException('商品不存在');
+        }
+
+        if ($displayTagsProvided) {
+            $config = Ini::toArray((string)($map['config'] ?? $current?->config ?? ''));
+            if ($displayTags === []) {
+                unset($config['display_tags']);
+            } else {
+                $config['display_tags'] = $displayTags;
+            }
+            $map['config'] = Ini::toConfig($config);
         }
 
         // create new

@@ -103,6 +103,13 @@
                             required: true
                         },
                         {
+                            title: "商品标签",
+                            name: "display_tags",
+                            type: "input",
+                            placeholder: "例如：成品账号，人手必备",
+                            tips: "多个标签用逗号或换行分隔，最多6个，每个最多12个字"
+                        },
+                        {
                             title: "零售价",
                             name: "price",
                             type: "input",

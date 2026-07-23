@@ -130,7 +130,7 @@ class Index extends User
                 'id', 'name', 'cover',
                 'status', 'delivery_way', 'price',
                 'user_price',
-                'level_disable', 'level_price', 'hide', 'owner', 'inventory_hidden', "recommend", 'category_id', 'stock', 'shared_id'
+                'level_disable', 'level_price', 'hide', 'owner', 'inventory_hidden', "recommend", 'category_id', 'stock', 'shared_id', 'config'
             ])
             ->withCount(['order as order_sold' => function (Builder $relation) {
                 $relation->where("delivery_status", 1);
@@ -159,6 +159,9 @@ class Index extends User
 
         //最终的商品数据遍历
         foreach ($data as $key => $val) {
+            $config = Ini::toArray((string)($val['config'] ?? ''));
+            $data[$key]['display_tags'] = array_values($config['display_tags'] ?? []);
+            unset($data[$key]['config']);
             $parseGroupConfig = Commodity::parseGroupConfig($val['level_price'], $userGroup);
             if (!in_array((string)$val['category_id'], $cates) || $val['hide'] == 1 && (!$parseGroupConfig || !isset($parseGroupConfig['show']) || $parseGroupConfig['show'] != 1)) {
                 //隐藏商品
