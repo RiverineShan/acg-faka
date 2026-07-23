@@ -56,12 +56,22 @@ class Pay extends Base implements \App\Pay\Pay
 
             $contents = $request->getBody()->getContents();
             $json = json_decode($contents, true);
-            if ($json['errcode'] != 0) {
-                throw new JSONException((string)$json['errmsg']);
+            if (!is_array($json)) {
+                throw new JSONException("支付网关返回的数据格式无效");
+            }
+            if ((int)($json['errcode'] ?? -1) !== 0) {
+                throw new JSONException((string)($json['errmsg'] ?? '支付网关返回未知错误'));
+            }
+            if (empty($json['url'])) {
+                throw new JSONException("支付网关未返回付款地址");
             }
             $url = $json['url'];
-        } catch (\Exception|\Error $e) {
-            throw new JSONException("请求失败");
+        } catch (JSONException $e) {
+            $this->log("Xunhupay: {$e->getMessage()}");
+            throw $e;
+        } catch (\Throwable $e) {
+            $this->log("Xunhupay connection error: {$e->getMessage()}");
+            throw new JSONException("支付网关连接失败");
         }
 
         $payEntity = new PayEntity();

@@ -2,7 +2,7 @@
 declare (strict_types=1);
 
 return [
-    'version' => '1.0.2',
+    'version' => '1.0.3',
     'name' => '虎皮椒',
     'author' => '荔枝',
     'website' => '#',
