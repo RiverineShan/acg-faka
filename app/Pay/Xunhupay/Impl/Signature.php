@@ -46,6 +46,14 @@ class Signature implements \App\Pay\Signature
 
     public static function isMobile(): bool
     {
+        $clientHint = trim((string)($_SERVER['HTTP_SEC_CH_UA_MOBILE'] ?? ''));
+        if ($clientHint === '?0') {
+            return false;
+        }
+        if ($clientHint === '?1') {
+            return true;
+        }
+
         return Client::getDeviceTypeByUa() !== 0;
     }
 }
