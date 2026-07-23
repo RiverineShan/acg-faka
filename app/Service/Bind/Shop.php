@@ -111,7 +111,7 @@ class Shop implements \App\Service\Shop
         $array = array_values($array);
 
         $commodityRecommend = Config::get("commodity_recommend");
-        if ($commodityRecommend == 1 && $master) {
+        if ($commodityRecommend == 1) {
             array_unshift($array, [
                 "id" => 'recommend',
                 "name" => Config::get("commodity_name"),
