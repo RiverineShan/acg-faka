@@ -343,6 +343,13 @@ class Store extends Manage
     private function remoteInteger(array $item, string $field, int $min, int $max, int $default = 0): int
     {
         $value = $item[$field] ?? $default;
+        // Older shared-store protocols may explicitly return null or an empty
+        // string for optional integer fields (most commonly stock). Treat
+        // those legacy values the same as an omitted field so existing 3.1.2
+        // suppliers remain importable after the 3.5.5 validation hardening.
+        if ($value === null || $value === '') {
+            $value = $default;
+        }
         if (is_int($value)) {
             $integer = $value;
         } elseif (is_string($value) && preg_match('/^-?\d+$/D', trim($value))) {
@@ -967,8 +974,17 @@ class Store extends Manage
                     $commodity->save();
                 });
                 $success++;
-            } catch (\Throwable) {
+            } catch (\Throwable $exception) {
                 $error++;
+                $failure = trim((string)preg_replace(
+                    '/[\x00-\x1F\x7F]/u',
+                    '',
+                    strip_tags($exception->getMessage())
+                ));
+                \Kernel\Util\Log::inst()->write(
+                    "远端商品 {$itemCode} -> 接入失败:" . mb_substr($failure, 0, 200),
+                    "shared_store_import_{$storeId}"
+                );
             }
         }
 
