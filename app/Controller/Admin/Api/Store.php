@@ -938,7 +938,13 @@ class Store extends Manage
                 $commodity->stock = $item['stock'];
 
                 //自动加价
-                $config = $this->shared->AdjustmentPrice((string)$item['config'], $item['price'], $item['user_price'], $premiumType, $premium);
+                $config = $this->shared->AdjustmentPrice(
+                    (string)$item['config'],
+                    (string)$item['price'],
+                    (string)$item['user_price'],
+                    $premiumType,
+                    $premium
+                );
 
                 $_config = Ini::toArray((string)$item['config']);
 
